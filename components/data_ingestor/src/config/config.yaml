@@ -1,0 +1,25 @@
+# Data Ingestor Configuration
+#
+# Behavioral settings are configured here.
+# Connection settings (host, port) should be set via environment variables.
+
+# General settings
+request_delay: 1.0  # Delay between requests in seconds (to avoid rate limiting)
+
+# HTML parser settings
+html:
+  user_agent: "DataIngestor/1.0 (Knowledge Hub)"
+  timeout: 30
+  exclude_elements:
+    - script
+    - style
+    - nav
+    - footer
+    - header
+    - aside
+
+# Qdrant embedder settings
+# Connection (host/port) should be set via QDRANT_HOST and QDRANT_PORT env vars
+qdrant:
+  model_name: "all-MiniLM-L6-v2"
+  batch_size: 32
