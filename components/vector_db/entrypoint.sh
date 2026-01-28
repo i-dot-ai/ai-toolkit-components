@@ -25,53 +25,40 @@ done
 
 echo "Qdrant is up! Running plugins..."
 
-# Create directories if they don't exist
-mkdir -p "/qdrant/config" "/qdrant/plugins"
+# Custom directory (single mount point for user customizations)
+CUSTOM_DIR="/app/custom"
 
-# Copy default config files
-if [ -d "/qdrant/defaults/config" ]; then
-    echo "Processing default config files..."
-    for file in /qdrant/defaults/config/*; do
-        [ -e "$file" ] || continue
-        base_file=$(basename "$file")
-        dest_file="/qdrant/config/$base_file"
-        
-        if [ ! -f "$dest_file" ]; then
-            echo "Copying default config: $base_file"
-            cp "$file" "$dest_file"
-        fi
-    done
-else
-    echo "No default config directory found"
-fi
+# Subdirectories for customizable code
+SUBDIRS=("config" "plugins")
 
-# Copy default plugin files
-if [ -d "/qdrant/defaults/plugins" ]; then
-    echo "Processing default plugin files..."
-    for file in /qdrant/defaults/plugins/*; do
-        [ -e "$file" ] || continue
-        base_file=$(basename "$file")
-        dest_file="/qdrant/plugins/$base_file"
-        
-        if [ ! -f "$dest_file" ]; then
-            echo "Copying default plugin: $base_file"
-            cp "$file" "$dest_file"
-        fi
-    done
-else
-    echo "No default plugins directory found"
-fi
+# Copy defaults to custom directory if not already present
+for dir in "${SUBDIRS[@]}"; do
+    mkdir -p "$CUSTOM_DIR/$dir"
 
-# Run all Python plugins in the plugins directory
-if ls /qdrant/plugins/*.py >/dev/null 2>&1; then
+    if [ -d "/app/defaults/$dir" ]; then
+        for file in /app/defaults/$dir/*; do
+            [ -e "$file" ] || continue
+            base_file=$(basename "$file")
+            dest_file="$CUSTOM_DIR/$dir/$base_file"
+
+            if [ ! -f "$dest_file" ]; then
+                echo "Copying default: $dir/$base_file"
+                cp "$file" "$dest_file"
+            fi
+        done
+    fi
+done
+
+# Run all Python plugins in the custom plugins directory
+if ls $CUSTOM_DIR/plugins/*.py >/dev/null 2>&1; then
     echo "Running plugins..."
-    for plugin in /qdrant/plugins/*.py; do
+    for plugin in $CUSTOM_DIR/plugins/*.py; do
         [ -e "$plugin" ] || continue
         echo "Running plugin: $(basename "$plugin")"
         python3 "$plugin"
     done
 else
-    echo "No Python plugins found in plugins directory"
+    echo "No Python plugins found"
 fi
 
 echo "Setup complete. Keeping process alive..."
