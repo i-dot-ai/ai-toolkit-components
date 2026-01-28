@@ -60,9 +60,7 @@ services:
     environment:
       - QDRANT_HOST=vector_db
     volumes:
-      - ./data/data_ingestor/config:/app/config
-      - ./data/data_ingestor/parsers:/app/parsers
-      - ./data/data_ingestor/embedders:/app/embedders
+      - ./data/data_ingestor:/app/custom
     command: ["https://example.com", "-c", "documents"]
 ```
 
@@ -86,9 +84,12 @@ options:
 
 | Path | Description |
 |------|-------------|
-| `/app/config` | Configuration files (defaults copied on first run) |
-| `/app/parsers` | Custom parser classes (defaults copied on first run) |
-| `/app/embedders` | Custom embedder classes (defaults copied on first run) |
+| `/app/custom` | User customizations (defaults copied on first run) |
+
+The custom directory contains:
+- `config/` - Configuration files
+- `parsers/` - Custom parser classes
+- `embedders/` - Custom embedder classes
 
 ## Configuration
 

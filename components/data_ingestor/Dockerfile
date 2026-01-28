@@ -22,13 +22,18 @@ RUN pip install --no-cache-dir \
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Copy source as defaults (will be copied to runtime dirs on startup)
-COPY src/ /app/defaults/
+# Copy application source
+COPY src/ingestor.py /app/
 
-# Create runtime directories (these are the mount points for user customization)
-RUN mkdir -p /app/config /app/parsers /app/embedders /app/output
+# Copy customizable defaults (will be copied to /app/custom on startup if not present)
+COPY src/config/ /app/defaults/config/
+COPY src/parsers/ /app/defaults/parsers/
+COPY src/embedders/ /app/defaults/embedders/
 
-# Set PYTHONPATH to use runtime directories
-ENV PYTHONPATH="/app"
+# Create custom directory (single mount point for user customization)
+RUN mkdir -p /app/custom
+
+# Set PYTHONPATH so custom parsers/embedders take precedence
+ENV PYTHONPATH="/app/custom:/app"
 
 ENTRYPOINT ["/app/entrypoint.sh"]
