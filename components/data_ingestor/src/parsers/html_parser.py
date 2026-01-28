@@ -24,7 +24,7 @@ class HTMLParser(BaseParser):
 
     def __init__(
         self,
-        user_agent: str = "DataIngestor/1.0",
+        user_agent: str = "Mozilla/5.0 (compatible; DataIngestor/1.0)",
         timeout: int = 30,
         exclude_elements: Optional[list[str]] = None
     ):

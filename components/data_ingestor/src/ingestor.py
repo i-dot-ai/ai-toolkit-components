@@ -31,7 +31,7 @@ class DataIngestor:
     vector databases through embedder classes.
     """
 
-    def __init__(self, config_path: str = "/app/config/config.yaml"):
+    def __init__(self, config_path: str = "/app/custom/config/config.yaml"):
         self.config = self._load_config(config_path)
         self._parsers: dict[str, BaseParser] = {}
         self._embedders: dict[str, BaseEmbedder] = {}
@@ -129,7 +129,7 @@ def main():
                         help="Vector store type (default: qdrant)")
     parser.add_argument("-c", "--collection", default="documents",
                         help="Collection name (default: documents)")
-    parser.add_argument("--config", default="/app/config/config.yaml",
+    parser.add_argument("--config", default="/app/custom/config/config.yaml",
                         help="Config file path")
 
     args = parser.parse_args()
