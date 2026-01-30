@@ -131,3 +131,21 @@ class TestDataIngestorContainer:
         # Should exit 0 (logs warning, stores 0 docs) rather than crash
         assert result.returncode == 0
         assert "no documents" in result.stderr.lower() or "stored 0" in result.stderr.lower()
+
+    def test_recursive_ingest(self, component_endpoint):
+        """Recursive mode should ingest the seed page and discovered sub-pages."""
+        collection = "test-ingest-recursive"
+        result = self.run_ingestor(
+            "-r", "--depth", "1",
+            "-c", collection,
+            "https://example.com",
+        )
+        assert result.returncode == 0
+        assert "crawl complete" in result.stderr.lower()
+
+        resp = requests.get(
+            f"{component_endpoint}/collections/{collection}"
+        )
+        assert resp.status_code == 200
+        # At minimum the seed page should be stored
+        assert resp.json()["result"]["points_count"] >= 1

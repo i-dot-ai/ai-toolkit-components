@@ -9,7 +9,7 @@ import sys
 import os
 from pathlib import Path
 from types import ModuleType
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 
 import pytest
 import numpy as np
@@ -127,6 +127,47 @@ class TestHTMLParser:
 
         with patch.object(parser, "fetch", return_value=None):
             assert parser.ingest("https://bad-url.com") is None
+
+    def test_extract_links_absolute_and_relative(self):
+        html = """
+        <html><body>
+        <a href="https://example.com/page1">Page 1</a>
+        <a href="/page2">Page 2</a>
+        <a href="sub/page3">Page 3</a>
+        </body></html>
+        """
+        links = HTMLParser.extract_links(html, "https://example.com/docs/")
+        assert "https://example.com/page1" in links
+        assert "https://example.com/page2" in links
+        assert "https://example.com/docs/sub/page3" in links
+
+    def test_extract_links_strips_fragments(self):
+        html = '<html><body><a href="/page#section">Link</a></body></html>'
+        links = HTMLParser.extract_links(html, "https://example.com/")
+        assert links == ["https://example.com/page"]
+
+    def test_extract_links_ignores_non_http(self):
+        html = """
+        <html><body>
+        <a href="mailto:test@example.com">Email</a>
+        <a href="javascript:void(0)">JS</a>
+        <a href="ftp://files.example.com">FTP</a>
+        <a href="https://example.com/valid">Valid</a>
+        </body></html>
+        """
+        links = HTMLParser.extract_links(html, "https://example.com/")
+        assert links == ["https://example.com/valid"]
+
+    def test_extract_links_deduplicates(self):
+        html = """
+        <html><body>
+        <a href="/page">Link 1</a>
+        <a href="/page">Link 2</a>
+        <a href="/page#section">Link 3</a>
+        </body></html>
+        """
+        links = HTMLParser.extract_links(html, "https://example.com/")
+        assert links == ["https://example.com/page"]
 
 
 # ---------------------------------------------------------------------------
@@ -269,3 +310,118 @@ class TestDataIngestor:
         ingestor = DataIngestor(config_path=str(config_file))
         assert ingestor.config["request_delay"] == 2.0
         assert ingestor.config["html"]["timeout"] == 10
+
+
+# ---------------------------------------------------------------------------
+# Crawl functionality
+# ---------------------------------------------------------------------------
+
+SEED_HTML = """
+<html><body>
+<p>Seed page content</p>
+<a href="https://example.com/docs/page1">Page 1</a>
+<a href="https://example.com/docs/page2">Page 2</a>
+<a href="https://example.com/other/page3">Other section</a>
+<a href="https://external.com/page">External</a>
+</body></html>
+"""
+
+CHILD_HTML = """
+<html><body>
+<p>Child page content</p>
+<a href="https://example.com/docs/page1/sub">Sub page</a>
+</body></html>
+"""
+
+
+class TestCrawl:
+    @patch("embedders.qdrant_embedder.QdrantClient")
+    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("parsers.html_parser.HTMLParser.fetch")
+    def test_crawl_follows_same_prefix_links(self, mock_fetch, MockTE, MockQC):
+        from ingestor import DataIngestor
+
+        mock_fetch.side_effect = lambda url: {
+            "https://example.com/docs/": SEED_HTML,
+            "https://example.com/docs/page1": CHILD_HTML,
+            "https://example.com/docs/page2": CHILD_HTML,
+        }.get(url)
+
+        MockTE.return_value = MagicMock(
+            embed=MagicMock(return_value=[np.array([0.1, 0.2, 0.3])])
+        )
+        mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[])
+        MockQC.return_value = mock_client
+
+        ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
+        count = ingestor.crawl(
+            ["https://example.com/docs/"],
+            max_depth=1, collection="test"
+        )
+
+        # Seed + 2 children under /docs/ (not /other/ or external)
+        assert count == 3
+        fetched_urls = [c.args[0] for c in mock_fetch.call_args_list]
+        assert "https://example.com/docs/" in fetched_urls
+        assert "https://example.com/docs/page1" in fetched_urls
+        assert "https://example.com/docs/page2" in fetched_urls
+        assert "https://example.com/other/page3" not in fetched_urls
+        assert "https://external.com/page" not in fetched_urls
+
+    @patch("embedders.qdrant_embedder.QdrantClient")
+    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("parsers.html_parser.HTMLParser.fetch")
+    def test_crawl_respects_depth_limit(self, mock_fetch, MockTE, MockQC):
+        from ingestor import DataIngestor
+
+        mock_fetch.side_effect = lambda url: {
+            "https://example.com/docs/": SEED_HTML,
+            "https://example.com/docs/page1": CHILD_HTML,
+            "https://example.com/docs/page2": CHILD_HTML,
+            "https://example.com/docs/page1/sub": CHILD_HTML,
+        }.get(url)
+
+        MockTE.return_value = MagicMock(
+            embed=MagicMock(return_value=[np.array([0.1, 0.2, 0.3])])
+        )
+        mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[])
+        MockQC.return_value = mock_client
+
+        ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
+
+        # depth=0: seed only
+        count = ingestor.crawl(["https://example.com/docs/"], max_depth=0, collection="t")
+        assert count == 1
+
+    @patch("embedders.qdrant_embedder.QdrantClient")
+    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("parsers.html_parser.HTMLParser.fetch")
+    def test_crawl_deduplicates_urls(self, mock_fetch, MockTE, MockQC):
+        from ingestor import DataIngestor
+
+        # Both pages link to each other
+        html_a = '<html><body><a href="https://example.com/docs/b">B</a></body></html>'
+        html_b = '<html><body><a href="https://example.com/docs/a">A</a></body></html>'
+        mock_fetch.side_effect = lambda url: {
+            "https://example.com/docs/a": html_a,
+            "https://example.com/docs/b": html_b,
+        }.get(url)
+
+        MockTE.return_value = MagicMock(
+            embed=MagicMock(return_value=[np.array([0.1, 0.2, 0.3])])
+        )
+        mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[])
+        MockQC.return_value = mock_client
+
+        ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
+        count = ingestor.crawl(
+            ["https://example.com/docs/a"],
+            max_depth=5, collection="t"
+        )
+
+        # Only 2 pages despite circular links and high depth
+        assert count == 2
+        assert mock_fetch.call_count == 2
