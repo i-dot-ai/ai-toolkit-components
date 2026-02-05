@@ -14,6 +14,7 @@ import yaml
 
 from parsers import BaseParser, ParsedDocument, get_parser_class, supported_types
 from embedders import BaseEmbedder, get_embedder_class, supported_stores
+from chunkers import BaseChunker, get_chunker_class, supported_chunkers
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,7 @@ class DataIngestor:
         self.config = self._load_config(config_path)
         self._parsers: dict[str, BaseParser] = {}
         self._embedders: dict[str, BaseEmbedder] = {}
+        self._chunkers: dict[str, BaseChunker] = {}
 
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from YAML file."""
@@ -77,12 +79,22 @@ class DataIngestor:
             self._embedders[store_type] = embedder_class(**embedder_config)
         return self._embedders[store_type]
 
+    def get_chunker(self, chunker_type: str) -> BaseChunker:
+        """Get or create a chunker for the given chunker type."""
+        if chunker_type not in self._chunkers:
+            chunker_class = get_chunker_class(chunker_type)
+            chunker_config = self.config.get(f"{chunker_type}_chunker", {})
+            logger.info(f"Creating chunker: {chunker_class.__name__} (type={chunker_type})")
+            self._chunkers[chunker_type] = chunker_class(**chunker_config)
+        return self._chunkers[chunker_type]
+
     def ingest(
         self,
         sources: list[str],
         source_type: str | None = None,
         store_type: str = "qdrant",
-        collection: str = "documents"
+        collection: str = "documents",
+        chunker_type: str | None = None
     ) -> int:
         """
         Ingest sources and embed them into a vector database.
@@ -92,13 +104,17 @@ class DataIngestor:
             source_type: Type of parser to use (auto-detected from extension if None)
             store_type: Type of vector store to use
             collection: Name of the collection to store in
+            chunker_type: Type of chunker to use (None for no chunking)
 
         Returns:
             Number of documents successfully stored
         """
         logger.info(f"Starting ingestion: {len(sources)} source(s), "
-                    f"type={source_type or 'auto'}, store={store_type}, collection={collection}")
+                    f"type={source_type or 'auto'}, store={store_type}, "
+                    f"collection={collection}, chunker={chunker_type or 'none'}")
         delay = self.config.get("request_delay", 1.0)
+
+        chunker = self.get_chunker(chunker_type) if chunker_type else None
 
         documents = []
         for source in sources:
@@ -107,7 +123,12 @@ class DataIngestor:
             logger.info(f"Parsing ({detected_type}): {source}")
             doc = parser.ingest(source)
             if doc:
-                documents.append(doc)
+                if chunker:
+                    chunks = chunker.chunk(doc)
+                    logger.info(f"Chunked into {len(chunks)} piece(s)")
+                    documents.extend(chunks)
+                else:
+                    documents.append(doc)
             if len(sources) > 1:
                 time.sleep(delay)
 
@@ -131,6 +152,11 @@ class DataIngestor:
         """Return list of supported store types."""
         return supported_stores()
 
+    @staticmethod
+    def supported_chunkers() -> list[str]:
+        """Return list of supported chunker types."""
+        return supported_chunkers()
+
 
 def main():
     """Main entry point for the data ingestor."""
@@ -148,6 +174,8 @@ def main():
                         help="Vector store type (default: qdrant)")
     parser.add_argument("-c", "--collection", default="documents",
                         help="Collection name (default: documents)")
+    parser.add_argument("-k", "--chunker", default=None,
+                        help="Chunker type (default: none, use 'json' for JSON-aware chunking)")
     parser.add_argument("--config", default="/app/custom/config/config.yaml",
                         help="Config file path")
 
@@ -171,7 +199,8 @@ def main():
         sources,
         source_type=args.type,
         store_type=args.store,
-        collection=args.collection
+        collection=args.collection,
+        chunker_type=args.chunker
     )
 
     logger.info(f"Done. Ingested {stored} document(s).")

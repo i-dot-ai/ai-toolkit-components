@@ -72,9 +72,10 @@ class QdrantEmbedder(BaseEmbedder):
             self._embedding_model = TextEmbedding(model_name=self.model_name)
         return self._embedding_model
 
-    def _generate_id(self, source: str) -> str:
-        """Generate a deterministic ID for a document based on its source."""
-        return hashlib.md5(source.encode()).hexdigest()
+    def _generate_id(self, source: str, chunk_index: int | None = None) -> str:
+        """Generate a deterministic ID for a document based on its source and chunk index."""
+        key = f"{source}#{chunk_index}" if chunk_index is not None else source
+        return hashlib.md5(key.encode()).hexdigest()
 
     def _ensure_collection(self, collection_name: str) -> None:
         """Ensure collection exists, creating it if necessary."""
@@ -118,8 +119,9 @@ class QdrantEmbedder(BaseEmbedder):
 
         points = []
         for doc, embedding in zip(documents, embeddings):
+            chunk_index = doc.metadata.get("chunk_index")
             point = PointStruct(
-                id=self._generate_id(doc.source),
+                id=self._generate_id(doc.source, chunk_index),
                 vector=embedding.tolist(),
                 payload={
                     "source": doc.source,

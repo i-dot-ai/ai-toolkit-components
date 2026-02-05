@@ -24,3 +24,10 @@ html:
 qdrant:
   model_name: "sentence-transformers/all-MiniLM-L6-v2"
   batch_size: 32
+
+# JSON chunker settings
+# Used when --chunker json is specified
+json_chunker:
+  max_chunk_size: 1000   # Maximum characters per chunk
+  min_chunk_size: 100    # Don't create chunks smaller than this
+  split_arrays: true     # Split array elements into separate chunks

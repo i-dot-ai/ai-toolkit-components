@@ -6,7 +6,8 @@ A containerised service for ingesting content from various sources and embedding
 
 - Pluggable parser architecture - easily extend to support new content types
 - Pluggable embedder architecture - support for multiple vector databases
-- Auto-discovery of parser and embedder classes
+- Pluggable chunker architecture - split large documents for better retrieval
+- Auto-discovery of parser, embedder, and chunker classes
 - Simple CLI - just pass URLs as arguments
 - Configurable via YAML and environment variables
 
@@ -21,6 +22,12 @@ A containerised service for ingesting content from various sources and embedding
 | Store | Description |
 |-------|-------------|
 | `qdrant` | Qdrant vector database |
+
+## Supported Chunkers
+
+| Chunker | Description |
+|---------|-------------|
+| `json` | JSON structure-aware chunking (splits arrays, objects) |
 
 ## Usage
 
@@ -44,6 +51,11 @@ docker compose run \
 docker compose run data_ingestor \
   -c my_collection \
   https://example.com
+
+# Use JSON chunking for API responses
+docker compose run data_ingestor \
+  -k json \
+  https://api.example.com/data.json
 ```
 
 ### Docker Compose
@@ -78,6 +90,7 @@ options:
   -t, --type TYPE       Source type (default: html)
   -s, --store STORE     Vector store type (default: qdrant)
   -c, --collection NAME Collection name (default: documents)
+  -k, --chunker TYPE    Chunker type (default: none, use 'json' for JSON-aware chunking)
   --config PATH         Config file path
 ```
 
@@ -91,6 +104,7 @@ The custom directory contains:
 - `config/` - Configuration files
 - `parsers/` - Custom parser classes
 - `embedders/` - Custom embedder classes
+- `chunkers/` - Custom chunker classes
 
 ## Configuration
 
@@ -111,6 +125,12 @@ html:
 qdrant:
   model_name: "all-MiniLM-L6-v2"
   batch_size: 32
+
+# Chunker settings
+json_chunker:
+  max_chunk_size: 1000   # Maximum characters per chunk
+  min_chunk_size: 100    # Minimum characters per chunk
+  split_arrays: true     # Split array elements into separate chunks
 ```
 
 ### Environment Variables
@@ -191,3 +211,54 @@ class PineconeEmbedder(BaseEmbedder):
 ```
 
 3. The embedder is automatically discovered and registered on container restart
+
+## Adding New Chunkers
+
+Custom chunkers can be added by placing Python files in the `/app/chunkers` volume mount.
+
+1. Create a new file in the mounted `chunkers/` directory (e.g., `text_chunker.py`)
+
+2. Implement a class inheriting from `BaseChunker` that implements the core `chunker_type` property and the `chunk` method:
+
+```python
+from chunkers.base import BaseChunker
+from parsers.base import ParsedDocument
+
+class TextChunker(BaseChunker):
+    def __init__(self, max_chunk_size: int = 1000):
+        self.max_chunk_size = max_chunk_size
+
+    @property
+    def chunker_type(self) -> str:
+        return "text"
+
+    def chunk(self, document: ParsedDocument) -> list[ParsedDocument]:
+        # Split document.content into chunks
+        chunks = []
+        content = document.content
+
+        for i, start in enumerate(range(0, len(content), self.max_chunk_size)):
+            chunk_content = content[start:start + self.max_chunk_size]
+            chunk_doc = ParsedDocument(
+                source=document.source,
+                title=document.title,
+                content=chunk_content,
+                metadata={
+                    **document.metadata,
+                    "chunk_index": i,
+                    "total_chunks": -1,  # Updated after all chunks created
+                    "parent_source": document.source,
+                },
+                timestamp=document.timestamp,
+                source_type=document.source_type,
+            )
+            chunks.append(chunk_doc)
+
+        # Update total_chunks in all chunks
+        for chunk in chunks:
+            chunk.metadata["total_chunks"] = len(chunks)
+
+        return chunks
+```
+
+3. The chunker is automatically discovered and registered on container restart
