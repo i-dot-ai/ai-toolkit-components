@@ -80,7 +80,7 @@ There are some components (e.g. the [data_ingestor](components/data_ingestor/)) 
 docker compose run data_ingestor http://example.com
 ```
 
-Componenets are customisable via mounted volumes. Each component mounts a single `custom` directory where defaults are copied on first run. Users can modify these files to customize behaviour:
+Components are customisable via mounted volumes. Each component mounts a single `custom` directory where defaults are copied on first run. Users can modify these files to customize behaviour:
 - **vector_db**: `config/` for Qdrant settings, `plugins/` for startup scripts
 - **data_ingestor**: `config/` for settings, `parsers/` and `embedders/` for custom code
 
