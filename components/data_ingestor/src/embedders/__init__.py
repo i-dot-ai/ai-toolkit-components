@@ -15,4 +15,10 @@ _registry = PluginRegistry(BaseEmbedder, "store_type", "embedder")
 _registry.discover(__name__, Path(__file__).parent)
 
 get_embedder_class = _registry.get
-supported_stores = _registry.supported_keys
+available_embedders = _registry.supported_keys()
+
+all__ = [
+    "BaseEmbedder",
+    "get_embedder_class",
+    "available_embedders",
+]

@@ -12,8 +12,8 @@ from pathlib import Path
 
 import yaml
 
-from parsers import BaseParser, ParsedDocument, get_parser_class, supported_types
-from embedders import BaseEmbedder, get_embedder_class, supported_stores
+from parsers import BaseParser, ParsedDocument, get_parser_class, available_parsers
+from embedders import BaseEmbedder, get_embedder_class, available_embedders
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,7 +49,7 @@ class DataIngestor:
     def _init_parsers(self) -> dict[str, BaseParser]:
         """Initialise all supported parsers."""
         parsers = {}
-        for source_type in supported_types():
+        for source_type in available_parsers:
             parser_class = get_parser_class(source_type)
             parser_config = self.config.get(source_type, {})
             logger.info(f"Creating parser: {parser_class.__name__} (type={source_type})")
@@ -59,7 +59,7 @@ class DataIngestor:
     def _init_embedders(self) -> dict[str, BaseEmbedder]:
         """Initialise all supported embedders."""
         embedders = {}
-        for store_type in supported_stores():
+        for store_type in available_embedders:
             embedder_class = get_embedder_class(store_type)
             embedder_config = self.config.get(store_type, {})
             logger.info(f"Creating embedder: {embedder_class.__name__} (store={store_type})")
@@ -125,16 +125,6 @@ class DataIngestor:
         stored = embedder.store(documents, collection)
         logger.info(f"Successfully stored {stored} document(s)")
         return stored
-
-    @staticmethod
-    def supported_types() -> list[str]:
-        """Return list of supported source types."""
-        return supported_types()
-
-    @staticmethod
-    def supported_stores() -> list[str]:
-        """Return list of supported store types."""
-        return supported_stores()
 
 
 def main():
