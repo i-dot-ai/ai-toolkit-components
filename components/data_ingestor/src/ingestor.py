@@ -102,14 +102,17 @@ class DataIngestor:
 
         documents = []
         for source in sources:
-            detected_type = source_type or self.detect_source_type(source)
-            parser = self.get_parser(detected_type)
-            logger.info(f"Parsing ({detected_type}): {source}")
-            doc = parser.ingest(source)
-            if doc:
-                documents.append(doc)
-            if len(sources) > 1:
-                time.sleep(delay)
+            try:
+                detected_type = source_type or self.detect_source_type(source)
+                parser = self.get_parser(detected_type)
+                logger.info(f"Parsing ({detected_type}): {source}")
+                doc = parser.ingest(source)
+                if doc:
+                    documents.append(doc)
+                    if len(sources) > 1:
+                        time.sleep(delay)
+            except:
+                print(f"Document ingestion failed for {source} (type={detected_type})")
 
         if not documents:
             logger.warning("No documents were successfully parsed")
