@@ -32,8 +32,8 @@ class DataIngestor:
 
     def __init__(self, config_path: str = "/app/custom/config/config.yaml"):
         self.config = self._load_config(config_path)
-        self._parsers: dict[str, BaseParser] = {}
-        self._embedders: dict[str, BaseEmbedder] = {}
+        self.parsers = self._init_parsers()
+        self.embedders = self._init_embedders()
 
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from YAML file."""
@@ -45,6 +45,26 @@ class DataIngestor:
             return config
         logger.warning(f"Config file not found at {config_path}, using defaults")
         return {}
+
+    def _init_parsers(self) -> dict[str, BaseParser]:
+        """Initialise all supported parsers."""
+        parsers = {}
+        for source_type in supported_types():
+            parser_class = get_parser_class(source_type)
+            parser_config = self.config.get(source_type, {})
+            logger.info(f"Creating parser: {parser_class.__name__} (type={source_type})")
+            parsers[source_type] = parser_class(**parser_config)
+        return parsers
+
+    def _init_embedders(self) -> dict[str, BaseEmbedder]:
+        """Initialise all supported embedders."""
+        embedders = {}
+        for store_type in supported_stores():
+            embedder_class = get_embedder_class(store_type)
+            embedder_config = self.config.get(store_type, {})
+            logger.info(f"Creating embedder: {embedder_class.__name__} (store={store_type})")
+            embedders[store_type] = embedder_class(**embedder_config)
+        return embedders
 
     @staticmethod
     def detect_source_type(source: str) -> str:
@@ -58,24 +78,6 @@ class DataIngestor:
         if not ext or ext in tlds:
             return "html"
         return ext
-
-    def get_parser(self, source_type: str) -> BaseParser:
-        """Get or create a parser for the given source type."""
-        if source_type not in self._parsers:
-            parser_class = get_parser_class(source_type)
-            parser_config = self.config.get(source_type, {})
-            logger.info(f"Creating parser: {parser_class.__name__} (type={source_type})")
-            self._parsers[source_type] = parser_class(**parser_config)
-        return self._parsers[source_type]
-
-    def get_embedder(self, store_type: str) -> BaseEmbedder:
-        """Get or create an embedder for the given store type."""
-        if store_type not in self._embedders:
-            embedder_class = get_embedder_class(store_type)
-            embedder_config = self.config.get(store_type, {})
-            logger.info(f"Creating embedder: {embedder_class.__name__} (store={store_type})")
-            self._embedders[store_type] = embedder_class(**embedder_config)
-        return self._embedders[store_type]
 
     def ingest(
         self,
@@ -104,7 +106,7 @@ class DataIngestor:
         for source in sources:
             try:
                 detected_type = source_type or self.detect_source_type(source)
-                parser = self.get_parser(detected_type)
+                parser = self.parsers[detected_type]
                 logger.info(f"Parsing ({detected_type}): {source}")
                 doc = parser.ingest(source)
                 if doc:
@@ -119,7 +121,7 @@ class DataIngestor:
             return 0
 
         logger.info(f"Storing {len(documents)} document(s) into {store_type}/{collection}")
-        embedder = self.get_embedder(store_type)
+        embedder = self.embedders[store_type]
         stored = embedder.store(documents, collection)
         logger.info(f"Successfully stored {stored} document(s)")
         return stored
