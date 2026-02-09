@@ -114,7 +114,7 @@ class DataIngestor:
                     if len(sources) > 1:
                         time.sleep(delay)
             except:
-                print(f"Document ingestion failed for {source} (type={detected_type})")
+                logger.warning(f"Document ingestion failed for {source} (type={detected_type})")
 
         if not documents:
             logger.warning("No documents were successfully parsed")
