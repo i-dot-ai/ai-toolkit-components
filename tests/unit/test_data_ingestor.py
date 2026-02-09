@@ -260,9 +260,8 @@ class TestDataIngestor:
     def test_ingest_failed_parse_returns_zero(self):
         from ingestor import DataIngestor
         ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
-        with patch.object(ingestor, "get_parser") as mock_gp:
-            mock_gp.return_value = MagicMock(ingest=MagicMock(return_value=None))
-            assert ingestor.ingest(["https://bad.com"]) == 0
+        ingestor.parsers["html"] = MagicMock(ingest=MagicMock(return_value=None))
+        assert ingestor.ingest(["https://bad.com"]) == 0
 
     def test_config_loading(self, tmp_path):
         import yaml
@@ -281,12 +280,11 @@ class TestDataIngestor:
     def test_detect_source_type(self):
         from ingestor import DataIngestor
 
-        ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
-        assert ingestor.detect_source_type('/path/to/file.pdf') == "pdf"
-        assert ingestor.detect_source_type("https://example.com/page.html?q=1") == "html"
-        assert ingestor.detect_source_type("https://example.com") == "html"
+        assert DataIngestor.detect_source_type('/path/to/file.pdf') == "pdf"
+        assert DataIngestor.detect_source_type("https://example.com/page.html?q=1") == "html"
+        assert DataIngestor.detect_source_type("https://example.com") == "html"
         # TLDs should not be treated as file extensions
-        assert ingestor.detect_source_type("https://example.com/page") == "html"
-        assert ingestor.detect_source_type("example.com") == "html"
-        assert ingestor.detect_source_type("https://docs.example.org") == "html"
-        assert ingestor.detect_source_type("https://api.example.io/v1") == "html"
+        assert DataIngestor.detect_source_type("https://example.com/page") == "html"
+        assert DataIngestor.detect_source_type("example.com") == "html"
+        assert DataIngestor.detect_source_type("https://docs.example.org") == "html"
+        assert DataIngestor.detect_source_type("https://api.example.io/v1") == "html"
