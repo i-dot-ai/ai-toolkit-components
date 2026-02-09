@@ -13,7 +13,7 @@ from tests.test_utils import verify_service_health
 @pytest.mark.parametrize("component_endpoint", [("vector_db", "6333")], indirect=True)
 def test_health_endpoint(component_endpoint):
     """Test that vector_db starts and becomes healthy."""
-    return verify_service_health("vector_db", timeout=120)
+    assert verify_service_health("vector_db", timeout=120)
 
 
 @pytest.mark.parametrize("component_endpoint", [("vector_db", "6333")], indirect=True)

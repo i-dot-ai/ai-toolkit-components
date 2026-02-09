@@ -138,15 +138,15 @@ class TestHTMLParser:
 
 class TestRegistries:
     def test_parser_registry(self):
-        from parsers import get_parser_class, supported_types
-        assert "html" in supported_types()
+        from parsers import get_parser_class, available_parsers
+        assert "html" in available_parsers
         assert get_parser_class("html") is HTMLParser
         with pytest.raises(ValueError, match="Unknown parser"):
             get_parser_class("nonexistent")
 
     def test_embedder_registry(self):
-        from embedders import supported_stores, get_embedder_class
-        assert "qdrant" in supported_stores()
+        from embedders import available_embedders, get_embedder_class
+        assert "qdrant" in available_embedders
         with pytest.raises(ValueError, match="Unknown embedder"):
             get_embedder_class("nonexistent")
 
