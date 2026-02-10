@@ -164,11 +164,12 @@ class TestDataIngestorContainer:
         assert result.returncode == 0
         assert "no documents" in result.stderr.lower() or "stored 0" in result.stderr.lower()
 
-    def test_ingest_unsupported_source_type_fails(self, component_endpoint):
-        """Ingestor should fail with unknown parser for unsupported source types."""
+    def test_ingest_unsupported_source_type_warns(self, component_endpoint):
+        """Ingestor should warn when no parser exists for a source type."""
         result = self.run_ingestor(
             "-c", "test-unsupported",
             "https://example.com/file.unsupported",
         )
-        assert result.returncode != 0
-        assert "unknown parser" in result.stderr.lower()
+        assert result.returncode == 0
+        assert "no parser for type" in result.stderr.lower()
+        assert "no documents" in result.stderr.lower()
