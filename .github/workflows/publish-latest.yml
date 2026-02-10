@@ -1,0 +1,70 @@
+name: Publish Latest Images
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: i-dot-ai/ai-toolkit
+
+jobs:
+  wait-for-components:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for component build and test to succeed
+        if: github.ref == 'refs/heads/main'
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-regexp: 'build-and-test'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
+  publish:
+    needs: wait-for-components
+    runs-on: ubuntu-latest
+    # Only run if the triggering workflow succeeded and was on main branch
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for cross-platform builds
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push component images
+        run: |
+          set -e
+          for component_dir in components/*/; do
+            component_name=$(basename "$component_dir")
+            # Convert underscores to hyphens for image name
+            image_name=$(echo "$component_name" | tr '_' '-')
+            full_image="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${image_name}"
+
+            echo "::group::Build and push ${image_name}"
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --push \
+              -t "${full_image}:latest" \
+              "$component_dir"
+            echo "Pushed ${full_image}:latest"
+            echo "::endgroup::"
+          done

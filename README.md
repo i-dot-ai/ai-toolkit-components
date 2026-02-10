@@ -201,20 +201,38 @@ Tests are written using `pytest`. To add new tests:
 ### CI/CD Pipelines
 
 
-The CI system runs three pipelines, each publishing test results directly on PRs:
+The CI/CD system runs the following workflows:
+
+#### Testing
 
 1. **Unit Tests** (`.github/workflows/unit-tests.yml`):
    - Triggered on push to main and PRs
-   - Runs all unit tests (no Docker needed)
+   - Dynamically discovers components with unit tests and runs each in a parallel matrix job (no Docker needed)
+   - Test results from all components are published as a single combined report
 
 2. **Component Build & Test** (`.github/workflows/component-build-test.yml`):
    - Triggered on push to main and PRs
-   - Builds Docker images for all components
-   - Runs component container tests
+   - Dynamically discovers components and runs each in a parallel matrix job
+   - Each job builds the component's Docker image and runs its container tests
+   - Test results from all components are published as a single combined report
 
 3. **Application Test** (`.github/workflows/application-test.yml`):
    - Runs after successful component builds
-   - Tests full application stacks using built components
+   - Dynamically discovers applications and runs each in a parallel matrix job
+   - Each job builds all component images and tests the full application stack
+   - Test results from all applications are published as a single combined report
+
+#### Publishing
+
+4. **Publish Latest Images** (`.github/workflows/publish-latest.yml`):
+   - Triggered automatically after a successful "Docker Build and Test" workflow on `main`
+   - Builds and pushes `latest`-tagged images for all components to GHCR (`ghcr.io/i-dot-ai/ai-toolkit-<component>`)
+
+5. **Release** (`.github/workflows/release.yml`):
+   - Manually triggered via `workflow_dispatch`
+   - Accepts a semver version (e.g., `1.2.3`) and an optional component name (defaults to all)
+   - Builds and pushes images tagged with both `v<version>` and `latest`
+   - Creates a GitHub Release with auto-generated release notes
 
 ## Contributing
 

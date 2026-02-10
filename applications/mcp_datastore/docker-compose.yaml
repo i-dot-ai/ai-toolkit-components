@@ -1,6 +1,6 @@
 services:
   vector_db:
-    image: vector_db:latest
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
     container_name: vector_db
     ports:
       - "6333:6333"  # HTTP API
@@ -17,7 +17,7 @@ services:
           cpus: '1'
 
   data_ingestor:
-    image: data_ingestor:latest
+    image: ghcr.io/i-dot-ai/ai-toolkit-data-ingestor:latest
     container_name: data_ingestor
     volumes:
       - ./code/data_ingestor:/app/custom

@@ -63,7 +63,7 @@ class TestDataIngestorContainer:
         collection = "test-ingest-single"
         result = self.run_ingestor(
             "-c", collection,
-            "https://example.com",
+            "http://httpbin.org/html",
         )
         assert result.returncode == 0
         assert "stored 1" in result.stderr.lower() or "stored 1" in result.stdout.lower()
@@ -79,8 +79,8 @@ class TestDataIngestorContainer:
         """Ingest multiple URLs into the same collection."""
         collection = "test-ingest-multi"
         urls = [
-            "https://example.com",
-            "https://www.iana.org/help/example-domains",
+            "http://httpbin.org/html",
+            "http://httpbin.org/forms/post",
         ]
         result = self.run_ingestor("-c", collection, *urls)
         assert result.returncode == 0
@@ -98,8 +98,8 @@ class TestDataIngestorContainer:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".txt", delete=False
         ) as f:
-            f.write("https://example.com\n")
-            f.write("https://www.iana.org/help/example-domains\n")
+            f.write("http://httpbin.org/html\n")
+            f.write("http://httpbin.org/forms/post\n")
             tmp_path = f.name
 
         try:
@@ -122,7 +122,7 @@ class TestDataIngestorContainer:
     def test_ingest_idempotent(self, component_endpoint):
         """Ingesting the same URL twice should upsert, not duplicate."""
         collection = "test-ingest-idempotent"
-        url = "https://example.com"
+        url = "http://httpbin.org/html"
 
         self.run_ingestor("-c", collection, url)
         self.run_ingestor("-c", collection, url)
@@ -136,7 +136,7 @@ class TestDataIngestorContainer:
     def test_ingest_creates_searchable_embeddings(self, component_endpoint):
         """Verify stored embeddings are searchable via Qdrant scroll API."""
         collection = "test-ingest-search"
-        self.run_ingestor("-c", collection, "https://example.com")
+        self.run_ingestor("-c", collection, "http://httpbin.org/html")
 
         # Scroll to retrieve stored points with payloads
         resp = requests.post(
@@ -148,7 +148,7 @@ class TestDataIngestorContainer:
         assert len(points) == 1
 
         payload = points[0]["payload"]
-        assert payload["source"] == "https://example.com"
+        assert payload["source"] == "http://httpbin.org/html"
         assert payload["source_type"] == "html"
         assert payload["title"]  # should have extracted a title
         assert payload["content"]  # should have extracted content
@@ -168,7 +168,7 @@ class TestDataIngestorContainer:
         """Ingestor should warn when no parser exists for a source type."""
         result = self.run_ingestor(
             "-c", "test-unsupported",
-            "https://example.com/file.unsupported",
+            "/tmp/test.unsupported",
         )
         assert result.returncode == 0
         assert "no parser for type" in result.stderr.lower()
