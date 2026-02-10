@@ -282,6 +282,10 @@ class TestDataIngestor:
         from ingestor import DataIngestor
 
         ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
+        # Force unstructured to be unavailable for predictable test results
+        ingestor._unstructured_checked = True
+        ingestor._unstructured_available = False
+
         assert ingestor.detect_source_type('/path/to/file.pdf') == "pdf"
         assert ingestor.detect_source_type("https://example.com/page.html?q=1") == "html"
         assert ingestor.detect_source_type("https://example.com") == "html"
