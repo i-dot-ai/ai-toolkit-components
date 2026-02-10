@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from tests.test_utils import wait_for_service
 
@@ -37,6 +38,16 @@ def application_endpoint(request, tmp_path_factory):
     shutil.copy(src_compose, app_dir / "docker-compose.yaml")
     compose_file = app_dir / "docker-compose.yaml"
 
+    # Pre-create volume mount directories so they are owned by the current user
+    # rather than root (which happens when Docker creates them automatically)
+    with open(compose_file) as f:
+        compose_config = yaml.safe_load(f)
+    for service in compose_config.get("services", {}).values():
+        for volume in service.get("volumes", []):
+            host_path = volume.split(":")[0]
+            if host_path.startswith("./") or host_path.startswith("../"):
+                (app_dir / host_path).mkdir(parents=True, exist_ok=True)
+
     # Start all services
     result = subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d"],
@@ -46,6 +57,18 @@ def application_endpoint(request, tmp_path_factory):
     )
     if result.returncode != 0:
         raise RuntimeError(f"Failed to start application: {result.stderr}")
+
+    # Fix ownership of volume mount directories — container entrypoints may
+    # create subdirectories as root, making them unwritable by the test runner
+    for service in compose_config.get("services", {}).values():
+        for volume in service.get("volumes", []):
+            host_path = volume.split(":")[0]
+            if host_path.startswith("./") or host_path.startswith("../"):
+                subprocess.run(
+                    ["docker", "run", "--rm", "-v", f"{app_dir / host_path}:/mount",
+                     "alpine", "chmod", "-R", "a+rwX", "/mount"],
+                    capture_output=True,
+                )
 
     yield app_dir
 
