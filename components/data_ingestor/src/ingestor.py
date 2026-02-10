@@ -103,18 +103,24 @@ class DataIngestor:
         delay = self.config.get("request_delay", 1.0)
 
         documents = []
-        for source in sources:
+        for i, source in enumerate(sources):
+            # Rate limit: delay between requests to avoid hammering servers
+            if i > 0:
+                time.sleep(delay)
+            detected_type = source_type or self.detect_source_type(source)
             try:
-                detected_type = source_type or self.detect_source_type(source)
                 parser = self.parsers[detected_type]
                 logger.info(f"Parsing ({detected_type}): {source}")
                 doc = parser.ingest(source)
                 if doc:
                     documents.append(doc)
-                    if len(sources) > 1:
-                        time.sleep(delay)
-            except:
-                logger.warning(f"Document ingestion failed for {source} (type={detected_type})")
+            except KeyError:
+                logger.warning(
+                    f"No parser for type '{detected_type}'. "
+                    f"Available: {list(self.parsers.keys())}"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to ingest {source}. Error: {e}")
 
         if not documents:
             logger.warning("No documents were successfully parsed")
