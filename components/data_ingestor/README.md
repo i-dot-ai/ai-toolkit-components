@@ -16,6 +16,27 @@ A containerised service for ingesting content from various sources and embedding
 | Type | Description |
 |------|-------------|
 | `html` | Web pages fetched via URL |
+| `unstructured` | Multi-format parser (PDF, DOCX, XLSX, PPTX, etc.) - requires optional dependencies |
+
+### Multi-Format Parsing (Optional)
+
+When built with `INSTALL_UNSTRUCTURED=true` (the default), the data ingestor can parse many document formats automatically:
+
+| Format | Extensions |
+|--------|------------|
+| PDF | `.pdf` |
+| Word | `.docx`, `.doc` |
+| Excel | `.xlsx`, `.xls` |
+| PowerPoint | `.pptx`, `.ppt` |
+| Text | `.txt`, `.md`, `.csv` |
+| Email | `.msg`, `.eml` |
+| Other | `.rtf`, `.odt`, `.epub`, `.xml`, `.json` |
+
+The parser automatically detects the file type and extracts text content. To build without multi-format support (smaller image):
+
+```bash
+docker build --build-arg INSTALL_UNSTRUCTURED=false -t data_ingestor:slim .
+```
 
 ## Supported Vector Stores
 
@@ -51,6 +72,16 @@ docker compose run \
 docker compose run data_ingestor \
   -c my_collection \
   https://example.com
+
+# Ingest a PDF file
+docker compose run \
+  -v $(pwd)/document.pdf:/data/document.pdf \
+  data_ingestor /data/document.pdf
+
+# Ingest multiple document types
+docker compose run \
+  -v $(pwd)/docs:/data \
+  data_ingestor /data/report.pdf /data/notes.docx /data/data.xlsx
 
 # Use JSON chunking for API responses
 docker compose run data_ingestor \
@@ -131,6 +162,11 @@ json_chunker:
   max_chunk_size: 1000   # Maximum characters per chunk
   min_chunk_size: 100    # Minimum characters per chunk
   split_arrays: true     # Split array elements into separate chunks
+
+# Unstructured parser settings (for PDF, DOCX, etc.)
+unstructured:
+  strategy: "auto"       # "auto", "fast", "hi_res", or "ocr_only"
+  include_metadata: true # Include element type breakdown
 ```
 
 ### Environment Variables

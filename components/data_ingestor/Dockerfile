@@ -17,6 +17,17 @@ RUN pip install --no-cache-dir \
     lxml \
     "qdrant-client[fastembed]"
 
+# Optional: Install unstructured for multi-format parsing (PDF, DOCX, etc.)
+ARG INSTALL_UNSTRUCTURED=true
+RUN if [ "$INSTALL_UNSTRUCTURED" = "true" ]; then \
+    pip install --no-cache-dir \
+        unstructured \
+        pypdf \
+        python-docx \
+        openpyxl \
+        python-pptx \
+    ; fi
+
 # Copy entrypoint
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
@@ -28,6 +39,7 @@ COPY src/ingestor.py src/registry.py /app/
 COPY src/config/ /app/defaults/config/
 COPY src/parsers/ /app/defaults/parsers/
 COPY src/embedders/ /app/defaults/embedders/
+COPY src/chunkers/ /app/defaults/chunkers/
 
 # Create custom directory (single mount point for user customization)
 RUN mkdir -p /app/custom

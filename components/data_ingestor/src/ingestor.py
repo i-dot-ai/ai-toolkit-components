@@ -31,11 +31,19 @@ class DataIngestor:
     vector databases through embedder classes.
     """
 
+    # File formats that can be handled by the unstructured parser
+    UNSTRUCTURED_FORMATS = {
+        "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
+        "md", "txt", "csv", "rtf", "odt", "epub", "msg", "eml"
+    }
+
     def __init__(self, config_path: str = "/app/custom/config/config.yaml"):
         self.config = self._load_config(config_path)
         self._parsers: dict[str, BaseParser] = {}
         self._embedders: dict[str, BaseEmbedder] = {}
         self._chunkers: dict[str, BaseChunker] = {}
+        self._unstructured_checked = False
+        self._unstructured_available = False
 
     def _load_config(self, config_path: str) -> dict:
         """Load configuration from YAML file."""
@@ -48,9 +56,24 @@ class DataIngestor:
         logger.warning(f"Config file not found at {config_path}, using defaults")
         return {}
 
-    @staticmethod
-    def detect_source_type(source: str) -> str:
-        """Detect source type from file extension, defaulting to 'html' for URLs."""
+    def _check_unstructured_available(self) -> bool:
+        """Check if unstructured library is available (cached)."""
+        if not self._unstructured_checked:
+            try:
+                from parsers.unstructured_parser import unstructured_available
+                self._unstructured_available = unstructured_available()
+            except ImportError:
+                self._unstructured_available = False
+            self._unstructured_checked = True
+        return self._unstructured_available
+
+    def detect_source_type(self, source: str) -> str:
+        """
+        Detect source type from file extension.
+
+        Routes to 'unstructured' parser for supported formats when available,
+        otherwise falls back to extension-based detection.
+        """
         path = source.split("://")[-1].split("?")[0].split("/")[-1]
         ext = Path(path).suffix.lstrip(".").lower()
 
@@ -59,6 +82,11 @@ class DataIngestor:
 
         if not ext or ext in tlds:
             return "html"
+
+        # Use unstructured parser for supported formats if available
+        if ext in self.UNSTRUCTURED_FORMATS and self._check_unstructured_available():
+            return "unstructured"
+
         return ext
 
     def get_parser(self, source_type: str) -> BaseParser:

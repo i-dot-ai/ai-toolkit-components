@@ -31,3 +31,9 @@ json_chunker:
   max_chunk_size: 1000   # Maximum characters per chunk
   min_chunk_size: 100    # Don't create chunks smaller than this
   split_arrays: true     # Split array elements into separate chunks
+
+# Unstructured parser settings (optional - requires unstructured package)
+# Handles PDF, DOCX, XLSX, PPTX, and other document formats
+unstructured:
+  strategy: "auto"         # Parsing strategy: "auto", "fast", "hi_res", "ocr_only"
+  include_metadata: true   # Include element type breakdown in metadata
