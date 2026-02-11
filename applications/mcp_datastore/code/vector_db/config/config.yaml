@@ -1,3 +1,0 @@
-service:
-    enable_static_content: true
-    static_content_dir: /qdrant/static
