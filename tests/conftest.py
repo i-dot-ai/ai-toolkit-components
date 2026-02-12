@@ -58,6 +58,43 @@ def application_endpoint(request, tmp_path_factory):
 
 
 @pytest.fixture
+def custom_tool_code():
+    """Custom tool code for testing tool discovery."""
+    return '''
+"""Custom ping tool for integration testing."""
+from .base import BaseTool
+
+
+class PingTool(BaseTool):
+    """Simple ping tool that returns a pong response."""
+
+    @property
+    def tool_name(self) -> str:
+        return "ping"
+
+    @property
+    def description(self) -> str:
+        return "Returns a pong response for testing"
+
+    @property
+    def input_schema(self) -> dict:
+        return {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Optional message to echo back",
+                    "default": "pong",
+                },
+            },
+        }
+
+    def execute(self, backend, **kwargs):
+        return {"response": kwargs.get("message", "pong")}
+'''
+
+
+@pytest.fixture
 def custom_parser_code():
     """Custom parser code for testing parser discovery."""
     return '''
