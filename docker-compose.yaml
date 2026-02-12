@@ -13,3 +13,15 @@ services:
       context: ./components/data_ingestor
       dockerfile: Dockerfile
     image: data_ingestor:latest
+
+  mcp_server:
+    build:
+      context: ./components/mcp_server
+      dockerfile: Dockerfile
+    image: mcp_server:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
