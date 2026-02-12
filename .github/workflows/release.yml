@@ -5,13 +5,16 @@ on:
     inputs:
       version:
         description: 'Release version (e.g., 1.2.3)'
-        required: true
+        required: false
+        default: 'v0.1.0'
         type: string
       component:
         description: 'Component to release (name of component, or "all")'
         required: false
         default: 'all'
         type: string
+  push:
+    AIKH-297/create_docker_registry
 
 env:
   REGISTRY: ghcr.io

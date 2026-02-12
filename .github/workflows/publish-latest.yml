@@ -8,6 +8,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  push:
+    AIKH-297/create_docker_registry
 
 env:
   REGISTRY: ghcr.io
