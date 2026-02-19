@@ -9,8 +9,27 @@ on:
     workflow_dispatch:
 
 jobs:
-  build-and-test:
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.find.outputs.components }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find components
+        id: find
+        run: |
+          components=$(ls -d components/*/ | xargs -n1 basename | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "components=$components" >> $GITHUB_OUTPUT
+
+  build-and-test:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.discover.outputs.components) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,31 +45,36 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build component images
-        run: |
-          set -e
-          for component in components/*/; do
-            component_name=$(basename "$component")
-            echo "::group::Build $component_name"
-            docker build -t $component_name:latest $component
-            echo "::endgroup::"
-          done
+      - name: Build component image
+        run: docker compose build ${{ matrix.component }}
 
-      - name: Test component containers
+      - name: Test component container
         run: |
-          set -e
           mkdir -p results
-          for component in components/*/; do
-            component_name=$(basename "$component")
-            echo "::group::Test $component_name"
-            uv run pytest -v "tests/components/test_${component_name}.py" \
-              --junitxml="results/component-${component_name}.xml" || true
-            echo "::endgroup::"
-          done
+          ./run_tests.sh component ${{ matrix.component }} -- \
+            --junitxml="results/component-${{ matrix.component }}.xml"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.component }}
+          path: results/component-${{ matrix.component }}.xml
+
+  publish-results:
+    needs: [discover, build-and-test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+          path: results
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
         with:
           files: results/component-*.xml
           check_name: Component Test Results

@@ -9,8 +9,27 @@ on:
     workflow_dispatch:
 
 jobs:
-  unit-tests:
+  discover:
     runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.find.outputs.components }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Find components with unit tests
+        id: find
+        run: |
+          components=$(ls tests/unit/test_*.py 2>/dev/null | xargs -n1 basename | sed 's/^test_//;s/\.py$//' | jq -R -s -c 'split("\n") | map(select(. != ""))')
+          echo "components=$components" >> $GITHUB_OUTPUT
+
+  test:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.discover.outputs.components) }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,11 +43,32 @@ jobs:
         run: uv sync
 
       - name: Run unit tests
-        run: uv run pytest -v tests/unit/ --junitxml=results/unit-tests.xml
+        run: |
+          mkdir -p results
+          ./run_tests.sh unit ${{ matrix.component }} -- \
+            --junitxml="results/unit-${{ matrix.component }}.xml"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.component }}
+          path: results/unit-${{ matrix.component }}.xml
+
+  publish-results:
+    needs: [discover, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+          path: results
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
         with:
-          files: results/unit-tests.xml
+          files: results/unit-*.xml
           check_name: Unit Test Results
