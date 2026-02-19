@@ -39,7 +39,7 @@ services:
           cpus: '0.5'
 
   mcp_server:
-    image: mcp_server:latest
+    image: ghcr.io/i-dot-ai/ai-toolkit-mcp-server:latest
     container_name: mcp_server
     ports:
       - "8080:8080"
