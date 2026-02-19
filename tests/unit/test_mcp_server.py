@@ -73,8 +73,11 @@ class TestQdrantBackend:
         mock_hit.score = 0.95
         mock_hit.payload = {"text": "test content"}
 
+        mock_response = MagicMock()
+        mock_response.points = [mock_hit]
+
         mock_client = MagicMock()
-        mock_client.search.return_value = [mock_hit]
+        mock_client.query_points.return_value = mock_response
         MockQdrantClient.return_value = mock_client
 
         backend = QdrantBackend()
@@ -83,7 +86,7 @@ class TestQdrantBackend:
         assert len(results) == 1
         assert results[0]["id"] == "abc"
         assert results[0]["score"] == 0.95
-        mock_client.search.assert_called_once()
+        mock_client.query_points.assert_called_once()
 
     @patch("backends.qdrant_backend.QdrantClient")
     def test_list_collections(self, MockQdrantClient):
