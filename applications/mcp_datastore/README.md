@@ -19,16 +19,6 @@ A vector database application for ingesting, storing, and querying document embe
 - MCP protocol server for AI agent tool access
 - Pluggable custom tools and backends for the MCP server
 
-## Prerequisites
-
-Build the component images before running the application:
-
-```bash
-docker compose build vector_db
-docker compose build data_ingestor
-docker compose build mcp_server
-```
-
 ## Usage
 
 Run all commands from the `applications/mcp_datastore` directory.
@@ -89,6 +79,42 @@ curl http://localhost:6333/collections/documents
 
 # Health check
 curl http://localhost:6333/healthz
+```
+
+### Use the MCP Server
+
+Start the MCP server alongside the vector database:
+
+```bash
+docker compose up -d vector_db mcp_server
+```
+
+Check it is healthy:
+
+```bash
+curl http://localhost:8080/health
+```
+
+#### Connecting an MCP Client
+
+The server uses SSE transport. Point your MCP client at:
+
+- **SSE endpoint:** `http://localhost:8080/sse`
+- **Messages endpoint:** `http://localhost:8080/messages/`
+
+For example, to add it to Claude Code:
+
+```bash
+claude mcp add mcp_datastore --transport sse http://localhost:8080/sse
+```
+
+All tools are enabled by default. To restrict which tools are exposed, set `enabled_tools` in `code/mcp_server/config/config.yaml`:
+
+```yaml
+enabled_tools:
+  - search
+  - list_collections
+  - get_documents
 ```
 
 ### Stop the Application
