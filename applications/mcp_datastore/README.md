@@ -36,7 +36,7 @@ A vector database application for ingesting, storing, and querying document embe
 
 ## Usage
 
-Copy `applications/mcp_datastore/docker-compose.yaml` into the directory where you wish to run the application, then run all commands from that directory.
+Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you wish to run the application, then run all commands from that directory.
 
 ### Start the Vector Database
 
