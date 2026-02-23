@@ -2,6 +2,21 @@
 
 A vector database application for ingesting, storing, and querying document embeddings. Combines the `vector_db`, `data_ingestor`, and `mcp_server` components to provide a complete content ingestion, retrieval, and AI agent access pipeline.
 
+```
+┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  data_ingestor   │────▶│    vector_db    │◀────│   mcp_server    │
+│                  │     │    (Qdrant)     │     │                 │
+│  - Custom parsers│     │                 │     │  - MCP protocol │
+│  - Embedder      │     │  - Collections  │     │  - SSE transport│
+└──────────────────┘     │  - Plugins      │     │  - Custom tools │
+                         └─────────────────┘     └─────────────────┘
+                               │                        │
+                         ┌─────┴─────┐           ┌──────┴────┐
+                         │  :6333    │           │  :8080    │
+                         │  :6334    │           └───────────┘
+                         └───────────┘
+```
+
 ## Components
 
 | Component | Description |
@@ -21,7 +36,7 @@ A vector database application for ingesting, storing, and querying document embe
 
 ## Usage
 
-Run all commands from the `applications/mcp_datastore` directory.
+Copy `applications/mcp_datastore/docker-compose.yaml` into the directory where you wish to run the application, then run all commands from that directory.
 
 ### Start the Vector Database
 
@@ -168,23 +183,6 @@ Each component writes default code into its `code/` subdirectory on first run. E
 8. Restart the relevant services for changes to take effect
 
 See individual component READMEs for detailed examples of each extension point.
-
-## Architecture
-
-```
-┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  data_ingestor   │────▶│    vector_db    │◀────│   mcp_server    │
-│                  │     │    (Qdrant)     │     │                 │
-│  - Custom parsers│     │                 │     │  - MCP protocol │
-│  - Embedder      │     │  - Collections  │     │  - SSE transport│
-└──────────────────┘     │  - Plugins      │     │  - Custom tools │
-                         └─────────────────┘     └─────────────────┘
-                               │                        │
-                         ┌─────┴─────┐           ┌──────┴────┐
-                         │  :6333    │           │  :8080    │
-                         │  :6334    │           └───────────┘
-                         └───────────┘
-```
 
 ## Resource Limits
 
