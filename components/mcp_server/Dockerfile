@@ -10,13 +10,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install --no-cache-dir \
-    mcp \
-    uvicorn \
-    starlette \
-    sse-starlette \
-    pyyaml \
-    "qdrant-client[fastembed]"
+COPY src/requirements.txt /app/defaults/requirements.txt
+RUN pip install --no-cache-dir -r /app/defaults/requirements.txt
 
 # Copy entrypoint
 COPY entrypoint.sh /app/entrypoint.sh

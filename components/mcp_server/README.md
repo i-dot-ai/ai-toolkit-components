@@ -26,6 +26,10 @@ A containerised MCP (Model Context Protocol) server that exposes vector database
 | `delete_collection` | Delete an entire collection |
 | `add_documents` | Add documents with automatic embedding |
 
+## Prerequisites
+
+Docker and Docker Compose are required. See the [Prerequisites guide](../../docs/prerequisites.md) for installation instructions.
+
 ## Usage
 
 The MCP server is designed to run alongside a vector database via docker compose.

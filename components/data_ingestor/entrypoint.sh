@@ -25,6 +25,13 @@ for dir in "${SUBDIRS[@]}"; do
     fi
 done
 
+# Install any extra packages added to the custom requirements file
+if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
+    echo "Copying default: requirements.txt"
+    cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
+fi
+pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
+
 echo "Starting data ingestor..."
 
 exec python -u /app/ingestor.py "$@"

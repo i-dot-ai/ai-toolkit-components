@@ -1,0 +1,57 @@
+# =============================================================================
+# Application docker-compose Template
+#
+# TODO: Copy this file to applications/<application_name>/docker-compose.yaml
+#       and work through every TODO comment below.
+#
+# Placeholders to replace:
+#   APPLICATION_NAME   - snake_case name of your application (e.g. my_app)
+#   COMPONENT_NAME     - snake_case component name (e.g. vector_db, data_ingestor)
+#   COMPONENT_PORT     - the port the component listens on
+#   HOST_PORT          - the port to expose on the host machine
+#
+# See docs/contributing.md for the full guide.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # TODO: Add one block per component your application uses.
+  #       Duplicate this block for each additional component.
+  #
+  # Key conventions:
+  # - Use published GHCR images (ghcr.io/i-dot-ai/ai-toolkit-<component_name>)
+  #   rather than building locally — applications consume components, not source
+  # - Mount ./code/<component_name> to /app/custom so default configs and
+  #   customisable code are written there on first run
+  # - Always set resource limits (memory and CPU) for every service
+  # - Use depends_on with condition: service_healthy for services that must
+  #   start before this one (requires the upstream service to define HEALTHCHECK)
+  # - Pass connection details (hostnames, ports) as environment variables, not
+  #   in config files, so the same image works in different environments
+  # ---------------------------------------------------------------------------
+
+  # TODO: rename to your component name (e.g. vector_db, data_ingestor)
+  COMPONENT_NAME:
+    image: ghcr.io/i-dot-ai/ai-toolkit-COMPONENT_NAME:latest  # TODO: replace COMPONENT_NAME
+    container_name: COMPONENT_NAME                             # TODO: replace COMPONENT_NAME
+    volumes:
+      - ./code/COMPONENT_NAME:/app/custom                      # TODO: replace COMPONENT_NAME
+    ports:
+      - "HOST_PORT:COMPONENT_PORT"  # TODO: replace HOST_PORT and COMPONENT_PORT; remove if not exposed
+    # TODO: uncomment and set environment variables your component needs
+    # environment:
+    #   - SOME_HOST=other_service
+    #   - SOME_API_KEY=${SOME_API_KEY}
+    # TODO: uncomment and adjust if this service depends on another being healthy first
+    # depends_on:
+    #   other_service:
+    #     condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G    # TODO: adjust to suit your component's needs
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"

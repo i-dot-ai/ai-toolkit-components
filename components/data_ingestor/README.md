@@ -22,6 +22,10 @@ A containerised service for ingesting content from various sources and embedding
 |-------|-------------|
 | `qdrant` | Qdrant vector database |
 
+## Prerequisites
+
+Docker and Docker Compose are required. See the [Prerequisites guide](../../docs/prerequisites.md) for installation instructions.
+
 ## Usage
 
 The data ingestor is designed to run alongside a vector database via docker compose. Use `docker compose run` to execute it within the compose network so it can reach the vector_db service by name.
