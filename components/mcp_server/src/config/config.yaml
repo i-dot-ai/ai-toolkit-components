@@ -1,0 +1,23 @@
+# MCP Server Configuration
+#
+# Connection settings (VECTOR_DB_HOST, VECTOR_DB_PORT) should be set
+# via environment variables.
+
+# Backend type (must match a registered backend's backend_type)
+backend: qdrant
+
+# Backend-specific behavioural settings
+backend_settings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  batch_size: 32
+
+# Tools to enable (omit or set to null to enable all discovered tools)
+# enabled_tools:
+#   - search
+#   - list_collections
+#   - get_documents
+
+# Server settings
+server:
+  host: "0.0.0.0"
+  port: 8080

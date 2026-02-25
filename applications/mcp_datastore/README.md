@@ -1,6 +1,21 @@
 # MCP Datastore
 
-A vector database application for ingesting and storing document embeddings. Combines the `vector_db` and `data_ingestor` components to provide a complete content ingestion and retrieval pipeline.
+A vector database application for ingesting, storing, and querying document embeddings. Combines the `vector_db`, `data_ingestor`, and `mcp_server` components to provide a complete content ingestion, retrieval, and AI agent access pipeline.
+
+```
+┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  data_ingestor   │────▶│    vector_db    │◀────│   mcp_server    │
+│                  │     │    (Qdrant)     │     │                 │
+│  - Custom parsers│     │                 │     │  - MCP protocol │
+│  - Embedder      │     │  - Collections  │     │  - SSE transport│
+└──────────────────┘     │  - Plugins      │     │  - Custom tools │
+                         └─────────────────┘     └─────────────────┘
+                               │                        │
+                         ┌─────┴─────┐           ┌──────┴────┐
+                         │  :6333    │           │  :8080    │
+                         │  :6334    │           └───────────┘
+                         └───────────┘
+```
 
 ## Components
 
@@ -8,6 +23,7 @@ A vector database application for ingesting and storing document embeddings. Com
 |-----------|-------------|
 | [vector_db](/components/vector_db/README.md) | Qdrant vector database with plugin support |
 | [data_ingestor](/components/data_ingestor/README.md) | Content ingestion and embedding service |
+| [mcp_server](/components/mcp_server/README.md) | MCP server exposing vector DB tools for AI agents |
 
 ## Features
 
@@ -15,19 +31,12 @@ A vector database application for ingesting and storing document embeddings. Com
 - HTML content parsing
 - Vector embedding generation using sentence-transformers
 - Configurable parsers and embedders via mounted volumes
-
-## Prerequisites
-
-Build the component images before running the application:
-
-```bash
-docker compose build vector_db
-docker compose build data_ingestor
-```
+- MCP protocol server for AI agent tool access
+- Pluggable custom tools and backends for the MCP server
 
 ## Usage
 
-Run all commands from the `applications/mcp_datastore` directory.
+Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you wish to run the application, then run all commands from that directory.
 
 ### Start the Vector Database
 
@@ -87,6 +96,42 @@ curl http://localhost:6333/collections/documents
 curl http://localhost:6333/healthz
 ```
 
+### Use the MCP Server
+
+Start the MCP server alongside the vector database:
+
+```bash
+docker compose up -d vector_db mcp_server
+```
+
+Check it is healthy:
+
+```bash
+curl http://localhost:8080/health
+```
+
+#### Connecting an MCP Client
+
+The server uses SSE transport. Point your MCP client at:
+
+- **SSE endpoint:** `http://localhost:8080/sse`
+- **Messages endpoint:** `http://localhost:8080/messages/`
+
+For example, to add it to Claude Code:
+
+```bash
+claude mcp add mcp_datastore --transport sse http://localhost:8080/sse
+```
+
+All tools are enabled by default. To restrict which tools are exposed, set `enabled_tools` in `code/mcp_server/config/config.yaml`:
+
+```yaml
+enabled_tools:
+  - search
+  - list_collections
+  - get_documents
+```
+
 ### Stop the Application
 
 ```bash
@@ -99,6 +144,7 @@ docker compose down
 |------|----------|-------------|
 | 6333 | HTTP | Qdrant REST API |
 | 6334 | gRPC | Qdrant gRPC API |
+| 8080 | HTTP | MCP server (SSE transport) |
 
 ## Configuration
 
@@ -111,6 +157,9 @@ Configuration files are mounted from the `code/` directory:
 | `code/data_ingestor/config/` | Ingestor configuration |
 | `code/data_ingestor/parsers/` | Custom parser classes |
 | `code/data_ingestor/embedders/` | Custom embedder classes |
+| `code/mcp_server/config/` | MCP server configuration |
+| `code/mcp_server/tools/` | Custom MCP tool classes |
+| `code/mcp_server/backends/` | Custom MCP backend classes |
 
 ### Default Configuration
 
@@ -120,30 +169,20 @@ The data ingestor is configured with:
 - **Collection**: `documents` (created automatically by the setup plugin)
 - **Distance metric**: Cosine similarity
 
-### Customization
+### Customisation
 
-To modify the embedding model or collection settings:
+Each component writes default code into its `code/` subdirectory on first run. Edit those files or add new ones — changes take effect on the next container restart.
 
-1. Edit `code/data_ingestor/config/config.yaml` for ingestor settings
-2. Add e.g. `code/vector_db/plugins/setup_collections.py` for collection configuration
-3. Restart the services
+1. Edit `code/data_ingestor/config/config.yaml` to change the embedding model, batch size, or parser settings
+2. Edit `code/mcp_server/config/config.yaml` to change the backend, server port, or restrict which tools are exposed via `enabled_tools`
+3. Add custom parsers to `code/data_ingestor/parsers/` — subclass `BaseParser` and implement `source_type`, `fetch`, and `parse`
+4. Add custom embedders to `code/data_ingestor/embedders/` — subclass `BaseEmbedder` and implement `store_type` and `store`
+5. Add custom MCP tools to `code/mcp_server/tools/` — subclass `BaseTool` and implement `tool_name`, `description`, `input_schema`, and `execute`
+6. Add custom MCP backends to `code/mcp_server/backends/` — subclass `BaseBackend` and implement the required database operations
+7. Add startup plugins to `code/vector_db/plugins/` for collection setup and index configuration
+8. Restart the relevant services for changes to take effect
 
-## Architecture
-
-```
-┌─────────────────┐     ┌─────────────────┐
-│  data_ingestor  │────▶│    vector_db    │
-│                 │     │    (Qdrant)     │
-│  - HTML parser  │     │                 │
-│  - Embedder     │     │  - Collections  │
-└─────────────────┘     │  - Plugins      │
-                        └─────────────────┘
-                              │
-                        ┌─────┴─────┐
-                        │  :6333    │
-                        │  :6334    │
-                        └───────────┘
-```
+See individual component READMEs for detailed examples of each extension point.
 
 ## Resource Limits
 
@@ -151,3 +190,4 @@ To modify the embedding model or collection settings:
 |---------|--------------|-----------|
 | vector_db | 4GB | 2 cores |
 | data_ingestor | 2GB | 1 core |
+| mcp_server | 2GB | 1 core |

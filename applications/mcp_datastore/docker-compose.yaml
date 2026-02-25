@@ -37,3 +37,23 @@ services:
         reservations:
           memory: 1G
           cpus: '0.5'
+
+  mcp_server:
+    image: ghcr.io/i-dot-ai/ai-toolkit-mcp-server:latest
+    container_name: mcp_server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./code/mcp_server:/app/custom
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1'
+        reservations:
+          memory: 1G
+          cpus: '0.5'

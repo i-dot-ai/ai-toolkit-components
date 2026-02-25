@@ -21,8 +21,16 @@ This repository provides **components** and **applications** that you can use to
 │  │    │  • Parse HTML   │  embed   │  • Store vectors│               │  │
 │  │    │  • Embed content│  ─────▶  │  • Search       │               │  │
 │  │    │                 │          │  • Query API    │               │  │
-│  │    └─────────────────┘          └─────────────────┘               │  │
-│  │         COMPONENT                    COMPONENT                    │  │
+│  │    └─────────────────┘          └────────┬────────┘               │  │
+│  │         COMPONENT                  COMPONENT │                    │  │
+│  │                                         │                         │  │
+│  │                                  ┌──────┴──────────┐              │  │
+│  │                                  │   mcp_server    │              │  │
+│  │                                  │                 │              │  │
+│  │                                  │  • MCP protocol │              │  │
+│  │                                  │  • AI agent API │              │  │
+│  │                                  └─────────────────┘              │  │
+│  │                                       COMPONENT                   │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 
@@ -92,6 +100,7 @@ The following components are available:
 |-----------|-------------|
 | [vector_db](components/vector_db/) | Qdrant vector database with plugin support |
 | [data_ingestor](components/data_ingestor/) | Content ingestion and embedding |
+| [mcp_server](components/mcp_server/) | MCP server exposing vector DB tools for AI agents |
 
 Individual components can be used by creating a custom `docker-compose.yaml` file that references the desired component images. Below is an example of how to define a service using a component:
 
