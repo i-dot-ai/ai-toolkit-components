@@ -9,7 +9,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +51,16 @@ class BaseParser(ABC):
         pass
 
     @abstractmethod
-    def parse(self, content: Any, source: str) -> ParsedDocument:
+    def parse(self, content: Any, source: str) -> list[ParsedDocument]:
         """
-        Parse raw content into a standardised document.
+        Parse raw content into a list of standardised documents.
 
         Args:
             content: Raw content to parse (type depends on parser)
             source: Source identifier (URL, file path, etc.)
 
         Returns:
-            ParsedDocument with extracted content and metadata
+            List of ParsedDocuments with extracted content and metadata
         """
         pass
 
@@ -78,7 +78,7 @@ class BaseParser(ABC):
         """
         pass
 
-    def ingest(self, source: str) -> Optional[ParsedDocument]:
+    def ingest(self, source: str) -> list[ParsedDocument]:
         """
         Fetch and parse content from a source.
 
@@ -86,12 +86,12 @@ class BaseParser(ABC):
             source: Source identifier
 
         Returns:
-            ParsedDocument or None if content could not be fetched
+            List of ParsedDocuments, or empty list if content could not be fetched
         """
         content = self.fetch(source)
         if content is None:
             logger.warning(f"No content fetched from {source}")
-            return None
+            return []
         return self.parse(content, source)
 
     @staticmethod

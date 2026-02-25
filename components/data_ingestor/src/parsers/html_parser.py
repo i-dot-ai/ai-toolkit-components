@@ -68,16 +68,16 @@ class HTMLParser(BaseParser):
             logger.error(f"Failed to fetch {source}: {e}")
             return None
 
-    def parse(self, content: str, source: str) -> ParsedDocument:
+    def parse(self, content: str, source: str) -> list[ParsedDocument]:
         """
-        Parse HTML content into a standardised document.
+        Parse HTML content into a list containing a single standardised document.
 
         Args:
             content: Raw HTML string
             source: Source URL
 
         Returns:
-            ParsedDocument with extracted content
+            Single-element list containing the ParsedDocument
         """
         soup = BeautifulSoup(content, "html.parser")
 
@@ -93,14 +93,14 @@ class HTMLParser(BaseParser):
                     f"content_length={len(text_content)}, "
                     f"metadata_keys={list(metadata.keys())}")
 
-        return ParsedDocument(
+        return [ParsedDocument(
             source=source,
             title=title,
             content=text_content,
             metadata=metadata,
             timestamp=self._current_timestamp(),
             source_type=self.source_type
-        )
+        )]
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
         """Extract document title from HTML."""

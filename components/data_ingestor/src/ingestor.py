@@ -111,9 +111,8 @@ class DataIngestor:
             try:
                 parser = self.parsers[detected_type]
                 logger.info(f"Parsing ({detected_type}): {source}")
-                doc = parser.ingest(source)
-                if doc:
-                    documents.append(doc)
+                docs = parser.ingest(source)
+                documents.extend(docs)
             except KeyError:
                 logger.warning(
                     f"No parser for type '{detected_type}'. "
