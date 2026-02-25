@@ -20,6 +20,21 @@ Good candidates for components are:
 
 ---
 
+## Templates
+
+Ready-to-use starting-point files are provided in `templates/component/`:
+
+| File | Purpose |
+|------|---------|
+| [`templates/component/Dockerfile`](templates/component/Dockerfile) | Annotated Dockerfile covering the full component pattern |
+| [`templates/component/entrypoint.sh`](templates/component/entrypoint.sh) | Annotated entrypoint script with the copy-on-first-run loop |
+| [`templates/component/src/config/config.yaml`](templates/component/src/config/config.yaml) | Starter config file with guidance on what belongs here |
+| [`templates/component/README.md`](templates/component/README.md) | README template with all required sections |
+
+Copy these into your new component directory and replace the `COMPONENT_*` placeholders with values specific to your component.
+
+---
+
 ## Component Structure
 
 Every component follows this layout:
@@ -52,42 +67,7 @@ Use `snake_case` for the component name (e.g. `document_chunker`, `pdf_parser`).
 
 ### 2. Write the Dockerfile
 
-Components follow a consistent pattern:
-
-```dockerfile
-FROM python:3.12-slim
-
-WORKDIR /app
-
-# Install system dependencies (keep minimal)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    pyyaml \
-    requests
-
-# Copy entrypoint
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-# Copy application source
-COPY src/<main>.py /app/
-
-# Copy customisable defaults (will be copied to /app/custom on startup)
-COPY src/config/ /app/defaults/config/
-
-# Create the single user-customisation mount point
-RUN mkdir -p /app/custom
-
-# Health check so dependent services can wait for readiness
-HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
-  CMD curl -f http://localhost:<port>/health || exit 1
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-```
+Start from the template at [`templates/component/Dockerfile`](templates/component/Dockerfile).
 
 Key conventions:
 - Use `python:3.12-slim` (or a purpose-built slim base image) to keep image size small
@@ -95,69 +75,19 @@ Key conventions:
 - Use a single `/app/custom` mount point (see the [Customisation Pattern](#customisation-pattern) section below)
 - Place defaults at `/app/defaults/` so they can be copied to `/app/custom` on first run
 
-If your component does **not** run as a persistent service (i.e. it executes a task and exits), omit the `HEALTHCHECK`.
+If your component does **not** run as a persistent service (i.e. it executes a task and exits), omit the `HEALTHCHECK`. The template marks these lines clearly.
 
 ### 3. Write the entrypoint.sh
 
-The entrypoint follows a standard structure:
+Start from the template at [`templates/component/entrypoint.sh`](templates/component/entrypoint.sh).
 
-```bash
-#!/bin/bash
-set -e
+The copy-on-first-run loop at the top copies default files from `/app/defaults/` into the mounted `/app/custom/` directory only if they are not already present. This means users can customise behaviour by editing files in the mounted volume without needing to rebuild the image, and their edits are never overwritten.
 
-CUSTOM_DIR="/app/custom"
-SUBDIRS=("config")  # Add any other customisable subdirectories here
-
-# Copy defaults to /app/custom if not already present
-for dir in "${SUBDIRS[@]}"; do
-    mkdir -p "$CUSTOM_DIR/$dir"
-
-    if [ -d "/app/defaults/$dir" ]; then
-        for file in /app/defaults/$dir/*.py /app/defaults/$dir/*.yaml; do
-            [ -e "$file" ] || continue
-            base_file=$(basename "$file")
-            dest_file="$CUSTOM_DIR/$dir/$base_file"
-
-            if [ ! -e "$dest_file" ]; then
-                echo "Copying default: $dir/$base_file"
-                cp "$file" "$dest_file"
-            fi
-        done
-    fi
-done
-
-echo "Starting <component_name>..."
-
-# For persistent services:
-exec python -u /app/<main>.py
-
-# For run-once tasks, pass through CLI arguments:
-# exec python -u /app/<main>.py "$@"
-```
-
-The copy-on-first-run pattern means users can customise behaviour by editing files in the mounted volume without needing to rebuild the image.
+Extend the `SUBDIRS` array in the template for each plugin directory your component exposes (e.g. `parsers`, `backends`).
 
 ### 4. Write the Source Code
 
-Structure your code to read configuration from `/app/custom/config/config.yaml` at startup. Connection details (hostnames, ports, credentials) should come from environment variables rather than config files, so that the same image works in different environments.
-
-```python
-import os
-import yaml
-
-def load_config(path="/app/custom/config/config.yaml"):
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
-
-config = load_config()
-
-# Behavioural settings from YAML
-batch_size = config.get("batch_size", 32)
-
-# Infrastructure settings from environment variables
-db_host = os.getenv("DB_HOST", "localhost")
-db_port = int(os.getenv("DB_PORT", "5432"))
-```
+Read configuration from `/app/custom/config/config.yaml` at startup. Connection details (hostnames, ports, credentials) should come from environment variables rather than config files, so that the same image works in different environments.
 
 #### Making Your Component Extensible (Optional)
 
@@ -174,46 +104,17 @@ See `components/data_ingestor/src/registry.py` for the registry implementation a
 
 ### 5. Provide a Default Config
 
-Create `src/config/config.yaml` with sensible defaults and clear comments:
+Start from the template at [`templates/component/src/config/config.yaml`](templates/component/src/config/config.yaml).
 
-```yaml
-# Behavioural settings for <component_name>
-batch_size: 32
-timeout: 30
-
-# Add further settings here
-```
-
-Do not put hostnames, ports, or credentials in this file — use environment variables for those.
+Keep this file to **behavioural** settings (batch sizes, timeouts, model names, feature flags). Do not put hostnames, ports, or credentials here — use environment variables for those.
 
 ### 6. Register in docker-compose.yaml
 
-Add your component to the root `docker-compose.yaml` so it can be built and tested locally:
+Add your component to the root `docker-compose.yaml` so it can be built and tested locally. Resource limits (`deploy.resources`) are mandatory — they prevent runaway containers from consuming all available memory or CPU on the host. See the existing component entries for the expected structure.
 
-```yaml
-services:
-  <component_name>:
-    build:
-      context: components/<component_name>
-      dockerfile: Dockerfile
-    container_name: <component_name>
-    ports:
-      - "<host_port>:<container_port>"
-    volumes:
-      - ./components/<component_name>/src/custom:/app/custom
-    environment:
-      - SOME_ENV_VAR=value
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: "1.0"
-        reservations:
-          memory: 512M
-          cpus: "0.5"
-```
+### 7. Write a README
 
-Resource limits are mandatory — they prevent runaway containers from consuming all available memory or CPU on the host.
+Start from the template at [`templates/component/README.md`](templates/component/README.md). It contains all required sections: features, usage, volume mounts, configuration, and ports. See `components/data_ingestor/README.md` or `components/mcp_server/README.md` for completed examples.
 
 ---
 
@@ -235,51 +136,19 @@ All components require tests at two levels. The CI pipelines automatically disco
 
 ### Unit Tests
 
-Unit tests live in `tests/unit/test_<component_name>.py`. They test your Python logic in isolation — no Docker required. Mock any heavy dependencies (database clients, HTTP calls, model loading):
-
-```python
-# tests/unit/test_<component_name>.py
-from unittest.mock import MagicMock, patch
-import pytest
-
-def test_config_loading():
-    config = {"batch_size": 16}
-    # ... test your config loading logic
-
-def test_core_logic():
-    # ... test the business logic
-```
+Unit tests live in `tests/unit/test_<component_name>.py`. They test your Python logic in isolation — no Docker required. Mock any heavy dependencies (database clients, HTTP calls, model loading).
 
 Run them with:
 
 ```bash
 ./run_tests.sh unit <component_name>
-# or
-uv run pytest -v tests/unit/test_<component_name>.py
 ```
 
 ### Component Tests
 
 Component tests live in `tests/components/test_<component_name>.py`. They build and start the actual Docker container, then verify it behaves correctly over the network. They use the `component_endpoint` pytest fixture, which handles build, start, and teardown automatically.
 
-```python
-# tests/components/test_<component_name>.py
-import pytest
-import requests
-
-@pytest.fixture(scope="module", params=[("<component_name>", <port>)])
-def component_endpoint(component_endpoint):
-    return component_endpoint
-
-def test_health_check(component_endpoint):
-    response = requests.get(f"{component_endpoint}/health")
-    assert response.status_code == 200
-
-def test_core_functionality(component_endpoint):
-    # ... test your component's API
-```
-
-The `params` tuple must be `(service_name_in_docker_compose, internal_port)`.
+The fixture is parametrised with a `(service_name, internal_port)` tuple — see the existing component tests under `tests/components/` for the pattern.
 
 Run them with:
 
@@ -293,51 +162,6 @@ At minimum, component tests should verify:
 - The health endpoint returns HTTP 200 (if applicable)
 - The primary API or function works correctly end-to-end
 - Error cases return appropriate responses
-
----
-
-## Writing a README
-
-Every component needs a `README.md`. Use this structure:
-
-```markdown
-# <Component Name>
-
-One sentence describing what the component does.
-
-## Features
-
-- Bullet points of key capabilities
-
-## Usage
-
-Show the minimal docker-compose snippet to use this component.
-
-## Volume Mounts
-
-| Path | Description |
-|------|-------------|
-| `/app/custom` | User customisations (defaults copied on first run) |
-
-Document the subdirectories and what can be customised in each.
-
-## Configuration
-
-### Config File
-Document the config.yaml options with examples.
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SOME_VAR` | What it does | `default_value` |
-
-## Ports
-
-| Port | Protocol | Description |
-|------|----------|-------------|
-| `8080` | HTTP | REST API |
-```
 
 ---
 
