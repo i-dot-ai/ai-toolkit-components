@@ -13,9 +13,9 @@ def wait_for_service(container_name, timeout=60):
         try:
             # Find the container by looking in full names for the service name
             container = next((c for c in client.containers.list() if container_name in c.name), None)
-            if container.status == 'running':
+            if container is not None and container.status == 'running':
                 return True
-        except docker.errors.NotFound:
+        except Exception:
             pass
 
         if time.time() - start > timeout:

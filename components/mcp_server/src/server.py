@@ -7,6 +7,7 @@ protocol using FastMCP with SSE transport.
 
 import argparse
 import logging
+import os
 from pathlib import Path
 
 import yaml
@@ -33,11 +34,10 @@ class MCPServer:
         self.backend = self._init_backend()
         self.tools = self._discover_tools()
 
-        server_config = self.config.get("server", {})
         self.mcp = FastMCP(
             "mcp-server",
-            host=server_config.get("host", "0.0.0.0"),
-            port=server_config.get("port", 8080),
+            host=os.environ.get("MCP_SERVER_HOST", "0.0.0.0"),
+            port=int(os.environ.get("MCP_SERVER_PORT", 8080)),
         )
 
         self._register_health()
@@ -106,12 +106,8 @@ class MCPServer:
                 tool.as_handler(self.backend)
             )
 
-    def run(self, host: str = "0.0.0.0", port: int = 8080) -> None:
+    def run(self) -> None:
         """Start the MCP server with SSE transport."""
-        server_config = self.config.get("server", {})
-        self.mcp.settings.host = server_config.get("host", host)
-        self.mcp.settings.port = server_config.get("port", port)
-
         logger.info(
             f"Starting MCP server on "
             f"{self.mcp.settings.host}:{self.mcp.settings.port}"
@@ -128,8 +124,6 @@ def main():
         default=DEFAULT_CONFIG_PATH,
         help="Path to config file",
     )
-    parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -137,8 +131,12 @@ def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
+    host = os.environ.get("MCP_SERVER_HOST", "0.0.0.0")
+    port = int(os.environ.get("MCP_SERVER_PORT", 8080))
+    print(f"Starting MCP Server on {host}:{port}, config file: {args.config}")
+
     server = MCPServer(config_path=args.config)
-    server.run(host=args.host, port=args.port)
+    server.run()
 
 
 if __name__ == "__main__":

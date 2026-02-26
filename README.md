@@ -51,7 +51,7 @@ Choose your path:
 | **Use/adapt an existing application** | [User Guide → Applications](#applications) |
 | **Use/adapt individual components** | [User Guide → Components](#components) |
 | **Build new components or applications** | [Development Guide](#development-guide) |
-| **Contribute back to the community** | [Contributing](docs/conributing.md) |
+| **Contribute back to the community** | [Contributing](docs/contributing.md) |
 
 ## Prerequisites
 
@@ -67,13 +67,15 @@ In order to employ the components and template applications provided in this rep
 
 ### Applications
 
+Applications are complete, ready-to-run solutions. Each one is a `docker-compose.yaml` that pulls published component images from GHCR, wires them together, and mounts a local `code/` directory where the components write their default configuration and extensibility code on first run. You do not need to clone this repository or touch any source code — copy the `docker-compose.yaml` to your project and customise the files that appear in `code/` after the first run.
+
 The following applications are available:
 
 | Application | Description |
 |-------------|-------------|
-| [mcp_datastore](applications/mcp_datastore/) | Document ingestion and semantic search |
+| [mcp_datastore](applications/mcp_datastore/) | Document ingestion and semantic search with MCP agent access |
 
-To get started, navigate to the application's directory or copy its `docker-compose.yaml` to your project. Each application defines the services and components it uses.
+To get started, navigate to the application's directory or copy its `docker-compose.yaml` to your project. Each application's README documents the services it includes, how to start them, and how to customise each component.
 
 Ensure you have Docker and Docker Compose installed (see the [Prerequisites guide](docs/prerequisites.md)). You can then run the application by executing the following command in the terminal from the application's directory:
 
@@ -88,17 +90,11 @@ $ cp applications/mcp_datastore/docker-compose.yaml .
 $ docker compose up -d
 ```
 
-There are some components (e.g. the [data_ingestor](components/data_ingestor/)) that are not continuously running services, but instead execute a task and then exit. For these, you can use `docker compose run` to execute them on demand. For example:
-
-```bash
-docker compose run data_ingestor http://example.com
-```
-
-Components are customisable via mounted volumes. Each component mounts a directory under `code` where defaults are copied on first run. Users can modify these files to customize behaviour.
-
 After running the application for the first time, you can explore the `code` directories to see the default configurations and code. Modify these files to tailor the components to your specific use case. See specific component READMEs for examples of how to customise.
 
 ### Components
+
+Components are single-purpose Docker services — the building blocks. Each one does one thing well (store vectors, parse and embed documents, serve an MCP interface) and is designed to be combined with others. Components are published as images to GHCR and expose a single volume mount point (`/app/custom`) where their default configuration and extensibility code are copied on first run. You can modify those files, or add new plugins and extension classes, without rebuilding the image.
 
 The following components are available:
 
@@ -108,21 +104,28 @@ The following components are available:
 | [data_ingestor](components/data_ingestor/) | Content ingestion and embedding |
 | [mcp_server](components/mcp_server/) | MCP server exposing vector DB tools for AI agents |
 
-Individual components can be used by creating a custom `docker-compose.yaml` file that references the desired component images. Below is an example of how to define a service using a component:
+To use a component directly, reference its published image in your own `docker-compose.yaml` and mount a local directory to `/app/custom`:
 
 ```yaml
-version: '3.8'
 services:
-    my_component_service:
-        image: ghcr.io/knowledge-hub/components/<component-a>:latest
-        container_name: my_component_service
-        ports:
-            - "8080:8080"
-        volumes:
-            - ./data/my_component:/app/data
-        environment:
-            - CONFIG_PATH=/app/data/config.yaml
+  vector_db:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector_db:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./code/vector_db:/app/custom
 ```
+
+There are two types of components:
+1. **Continuously running services** (e.g. the [vector_db](components/vector_db/)) that run indefinitely and expose an API. For these, use `docker compose up` to start them as background services, and `docker compose down` to stop them.
+2. **Task-based components** (e.g. the [data_ingestor](components/data_ingestor/)) that execute a task and then exit. For these components, use `docker compose run` to execute them on demand. For example:
+
+```bash
+docker compose run data_ingestor http://example.com
+```
+
+Components are customisable via mounted volumes. Each component mounts a directory under `code` where defaults are copied on first run. Users can modify these files to customize behaviour. Please refer to each component's README for specific instructions on usage, and how to customize and extend its functionality.
+
 
 ## Development Guide
 
@@ -256,6 +259,6 @@ The CI/CD system runs the following workflows:
 3. Verify all GitHub Actions pass
 4. Maintain documentation updates
 
-See [Contributing](docs/conributing.md) for a full guide on adding new components, including templates, testing requirements, and the pull request checklist.
+See [Contributing](docs/contributing.md) for a full guide on adding new components, including templates, testing requirements, and the pull request checklist.
 
 See [LICENSE](LICENSE) for terms.

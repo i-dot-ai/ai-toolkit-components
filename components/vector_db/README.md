@@ -51,6 +51,16 @@ services:
       - ./data/vector_db:/app/custom
 ```
 
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VECTOR_DB_BIND_HOST` | Host address the database binds to | `0.0.0.0` |
+| `VECTOR_DB_HTTP_PORT` | HTTP REST API port | `6333` |
+| `VECTOR_DB_GRPC_PORT` | gRPC API port | `6334` |
+
 ## Volume Mounts
 
 | Path | Description |

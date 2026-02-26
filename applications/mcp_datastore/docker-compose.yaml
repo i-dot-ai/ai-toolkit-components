@@ -3,10 +3,15 @@ services:
     image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
     container_name: vector_db
     ports:
-      - "6333:6333"  # HTTP API
-      - "6334:6334"  # gRPC API
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"  # HTTP API
+      - "${VECTOR_DB_GRPC_PORT:-6334}:${VECTOR_DB_GRPC_PORT:-6334}"  # gRPC API
     volumes:
       - ./code/vector_db:/app/custom
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+      - VECTOR_DB_GRPC_PORT=${VECTOR_DB_GRPC_PORT:-6334}
     deploy:
       resources:
         limits:
@@ -26,6 +31,7 @@ services:
       - vector_db
     environment:
       - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     # Example: ingest URLs by passing them as command arguments
     # e.g.: ["https://example.com", "https://example.com/page2"]
     # Or use a file: command: ["-f", "/app/sources.txt"]
@@ -42,13 +48,16 @@ services:
     image: ghcr.io/i-dot-ai/ai-toolkit-mcp-server:latest
     container_name: mcp_server
     ports:
-      - "8080:8080"
+      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
     volumes:
       - ./code/mcp_server:/app/custom
     depends_on:
       - vector_db
     environment:
+      - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8080}
       - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     deploy:
       resources:
         limits:
@@ -57,3 +66,6 @@ services:
         reservations:
           memory: 1G
           cpus: '0.5'
+
+volumes:
+  qdrant_storage:

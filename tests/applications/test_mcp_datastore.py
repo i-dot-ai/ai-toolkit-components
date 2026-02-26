@@ -8,6 +8,82 @@ from tests.test_utils import get_application_services
 
 APP_NAME = "mcp_datastore"
 
+@pytest.fixture
+def custom_parser_code():
+    """Custom parser code for testing parser discovery."""
+    return '''
+"""Custom test parser for integration testing."""
+import logging
+from .base import BaseParser, ParsedDocument
+
+logger = logging.getLogger(__name__)
+
+
+class TestParser(BaseParser):
+    """Simple parser for .test files."""
+
+    @property
+    def source_type(self) -> str:
+        return "test"
+
+    def fetch(self, source: str):
+        logger.info(f"TestParser fetching: {source}")
+        try:
+            with open(source) as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"TestParser failed to read {source}: {e}")
+            return None
+
+    def parse(self, content: str, source: str) -> ParsedDocument:
+        logger.info(f"TestParser parsing: {source}")
+        return ParsedDocument(
+            source=source,
+            title="Test Document",
+            content=content,
+            metadata={"parser": "test"},
+            timestamp=self._current_timestamp(),
+            source_type=self.source_type,
+        )
+'''
+
+
+@pytest.fixture
+def custom_tool_code():
+    """Custom tool code for testing tool discovery."""
+    return '''
+"""Custom ping tool for integration testing."""
+from .base import BaseTool
+
+
+class PingTool(BaseTool):
+    """Simple ping tool that returns a pong response."""
+
+    @property
+    def tool_name(self) -> str:
+        return "ping"
+
+    @property
+    def description(self) -> str:
+        return "Returns a pong response for testing"
+
+    @property
+    def input_schema(self) -> dict:
+        return {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Optional message to echo back",
+                    "default": "pong",
+                },
+            },
+        }
+
+    def execute(self, backend, **kwargs):
+        return {"response": kwargs.get("message", "pong")}
+'''
+
 
 @pytest.mark.parametrize("application_endpoint", [APP_NAME], indirect=True)
 class TestMcpDatastore:
