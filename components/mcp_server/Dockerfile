@@ -36,9 +36,12 @@ RUN mkdir -p /app/custom
 # Set PYTHONPATH so custom backends/tools take precedence
 ENV PYTHONPATH="/app/custom:/app"
 
+# Default port (can be overridden via MCP_PORT env var)
+ENV MCP_PORT=8080
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=5s --timeout=3s --retries=5 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:${MCP_PORT}/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

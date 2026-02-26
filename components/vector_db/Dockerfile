@@ -9,6 +9,9 @@ python3 python3-pip python3-venv curl
 RUN pip install qdrant-client pyyaml --break-system-packages && \
     rm -rf /var/lib/apt/lists/*
 
+# Default ports (can be overridden via HTTP_PORT / GRPC_PORT env vars)
+ENV HTTP_PORT=6333 GRPC_PORT=6334
+
 # Expose default ports
 # 6333 - HTTP API
 # 6334 - gRPC API
@@ -29,6 +32,6 @@ RUN mkdir -p /app/custom
 
 # Healthcheck so dependent services can wait for readiness
 HEALTHCHECK --interval=5s --timeout=3s --retries=5 \
-  CMD curl -f http://localhost:6333/healthz || exit 1
+  CMD curl -f http://localhost:${HTTP_PORT}/healthz || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -3,10 +3,14 @@ services:
     image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
     container_name: vector_db
     ports:
-      - "6333:6333"  # HTTP API
-      - "6334:6334"  # gRPC API
+      - "${HTTP_PORT:-6333}:${HTTP_PORT:-6333}"  # HTTP API
+      - "${GRPC_PORT:-6334}:${GRPC_PORT:-6334}"  # gRPC API
     volumes:
       - ./code/vector_db:/app/custom
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - HTTP_PORT
+      - GRPC_PORT
     deploy:
       resources:
         limits:
@@ -42,12 +46,13 @@ services:
     image: ghcr.io/i-dot-ai/ai-toolkit-mcp-server:latest
     container_name: mcp_server
     ports:
-      - "8080:8080"
+      - "${MCP_PORT:-8080}:${MCP_PORT:-8080}"
     volumes:
       - ./code/mcp_server:/app/custom
     depends_on:
       - vector_db
     environment:
+      - MCP_PORT
       - VECTOR_DB_HOST=vector_db
     deploy:
       resources:
@@ -57,3 +62,6 @@ services:
         reservations:
           memory: 1G
           cpus: '0.5'
+
+volumes:
+  qdrant_storage:

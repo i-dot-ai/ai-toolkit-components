@@ -7,6 +7,7 @@ protocol using FastMCP with SSE transport.
 
 import argparse
 import logging
+import os
 from pathlib import Path
 
 import yaml
@@ -129,7 +130,7 @@ def main():
         help="Path to config file",
     )
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--port", type=int, default=int(os.environ.get("MCP_PORT", 8080)))
     args = parser.parse_args()
 
     logging.basicConfig(

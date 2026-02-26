@@ -52,6 +52,10 @@ else
     echo "No config file found at $CONFIG_FILE, using defaults."
 fi
 
+# Apply port configuration (env vars take precedence over config.yaml)
+export QDRANT__SERVICE__HTTP_PORT=${HTTP_PORT:-6333}
+export QDRANT__SERVICE__GRPC_PORT=${GRPC_PORT:-6334}
+
 # Start Qdrant in the background (after config is loaded so env vars take effect)
 /qdrant/qdrant &
 QDRANT_PID=$!
@@ -59,11 +63,11 @@ QDRANT_PID=$!
 echo "Starting Qdrant (PID: $QDRANT_PID)..."
 
 # Wait for Qdrant to be ready
-echo "Waiting for healthcheck on localhost:6333..."
+echo "Waiting for healthcheck on localhost:${HTTP_PORT:-6333}..."
 MAX_RETRIES=30
 COUNT=0
 
-until curl -s http://localhost:6333/healthz > /dev/null; do
+until curl -s http://localhost:${HTTP_PORT:-6333}/healthz > /dev/null; do
   COUNT=$((COUNT + 1))
   if [ $COUNT -ge $MAX_RETRIES ]; then
     echo "Error: Qdrant failed to start in time."

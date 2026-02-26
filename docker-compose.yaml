@@ -5,8 +5,13 @@ services:
       dockerfile: Dockerfile
     image: vector_db:latest
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "${HTTP_PORT:-6333}:${HTTP_PORT:-6333}"
+      - "${GRPC_PORT:-6334}:${GRPC_PORT:-6334}"
+    volumes:
+      - ./data/vector_db:/qdrant/storage
+    environment:
+      - HTTP_PORT
+      - GRPC_PORT
 
   data_ingestor:
     build:
@@ -20,8 +25,9 @@ services:
       dockerfile: Dockerfile
     image: mcp_server:latest
     ports:
-      - "8080:8080"
+      - "${MCP_PORT:-8080}:${MCP_PORT:-8080}"
     depends_on:
       - vector_db
     environment:
+      - MCP_PORT
       - VECTOR_DB_HOST=vector_db
