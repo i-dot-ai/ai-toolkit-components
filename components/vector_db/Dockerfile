@@ -12,10 +12,6 @@ RUN pip install qdrant-client pyyaml --break-system-packages && \
 # Default ports (can be overridden via HTTP_PORT / GRPC_PORT env vars)
 ENV HTTP_PORT=6333 GRPC_PORT=6334
 
-# Expose default ports
-# 6333 - HTTP API
-# 6334 - gRPC API
-EXPOSE 6333 6334
 
 WORKDIR /app
 
