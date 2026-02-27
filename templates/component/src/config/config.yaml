@@ -1,0 +1,25 @@
+# =============================================================================
+# Component Configuration Template
+#
+# Copy this file to components/<component_name>/src/config/config.yaml.
+#
+# This file holds BEHAVIOURAL settings — things like batch sizes, timeouts,
+# model names, and feature flags.  Do NOT put connection details here;
+# hostnames, ports, and credentials should come from environment variables
+# so the same image works across different environments.
+#
+# On first container start, this file is copied to /app/custom/config/ in
+# the mounted volume.  Users can then edit the copy without rebuilding the
+# image.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Add your configuration keys here.  Group related settings under a section
+# heading.  Document the valid range or accepted values in a comment.
+# ---------------------------------------------------------------------------
+
+# Example: timeout for outbound HTTP requests (seconds)
+# request_timeout: 30
+
+# Example: number of items processed in a single batch
+# batch_size: 32
