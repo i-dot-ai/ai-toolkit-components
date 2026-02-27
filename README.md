@@ -82,14 +82,6 @@ $ cp applications/mcp_datastore/docker-compose.yaml .
 $ docker compose up -d
 ```
 
-There are some components (e.g. the [data_ingestor](components/data_ingestor/)) that are not continuously running services, but instead execute a task and then exit. For these, you can use `docker compose run` to execute them on demand. For example:
-
-```bash
-docker compose run data_ingestor http://example.com
-```
-
-Components are customisable via mounted volumes. Each component mounts a directory under `code` where defaults are copied on first run. Users can modify these files to customize behaviour.
-
 After running the application for the first time, you can explore the `code` directories to see the default configurations and code. Modify these files to tailor the components to your specific use case. See specific component READMEs for examples of how to customise.
 
 ### Components
@@ -117,6 +109,14 @@ services:
         environment:
             - CONFIG_PATH=/app/data/config.yaml
 ```
+
+There are some components (e.g. the [data_ingestor](components/data_ingestor/)) that are not continuously running services, but instead execute a task and then exit. For these, you can use `docker compose run` to execute them on demand. For example:
+
+```bash
+docker compose run data_ingestor http://example.com
+```
+
+Components are customisable via mounted volumes. Each component mounts a directory under `code` where defaults are copied on first run. Users can modify these files to customize behaviour.
 
 ## Development Guide
 
