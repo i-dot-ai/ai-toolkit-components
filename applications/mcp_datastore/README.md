@@ -57,7 +57,7 @@ docker compose run data_ingestor \
   https://example.com \
   https://example.com/page2
 
-# Ingest from a file
+# Ingest from a file - maybe something about this command would read the following file root/url.txt
 docker compose run -v $(pwd)/urls.txt:/app/urls.txt \
   data_ingestor -f /app/urls.txt
 
