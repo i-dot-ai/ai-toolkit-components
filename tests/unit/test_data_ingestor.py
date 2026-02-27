@@ -81,8 +81,10 @@ class TestHTMLParser:
     def test_parse_extracts_all_fields(self):
         """Parse sample HTML and verify title, content, metadata, and excluded elements."""
         parser = HTMLParser()
-        doc = parser.parse(SAMPLE_HTML, "https://example.com/page")
+        docs = parser.parse(SAMPLE_HTML, "https://example.com/page")
 
+        assert len(docs) == 1
+        doc = docs[0]
         assert doc.source_type == "html"
         assert doc.source == "https://example.com/page"
         assert doc.timestamp
@@ -97,15 +99,17 @@ class TestHTMLParser:
         assert doc.metadata["og_title"] == "OG Test"
 
     def test_title_fallback_to_h1(self):
-        doc = HTMLParser().parse(
+        docs = HTMLParser().parse(
             "<html><body><h1>Heading</h1><p>Content</p></body></html>",
             "https://example.com",
         )
-        assert doc.title == "Heading"
+        assert len(docs) == 1
+        assert docs[0].title == "Heading"
 
     def test_custom_exclude_elements(self):
-        doc = HTMLParser(exclude_elements=["p"]).parse(SAMPLE_HTML, "https://example.com")
-        assert "Main content paragraph." not in doc.content
+        docs = HTMLParser(exclude_elements=["p"]).parse(SAMPLE_HTML, "https://example.com")
+        assert len(docs) == 1
+        assert "Main content paragraph." not in docs[0].content
 
     def test_fetch_success_and_failure(self):
         import requests
@@ -123,13 +127,13 @@ class TestHTMLParser:
     def test_ingest_fetches_and_parses(self):
         parser = HTMLParser()
         with patch.object(parser, "fetch", return_value=SAMPLE_HTML):
-            doc = parser.ingest("https://example.com")
-            assert doc is not None and doc.title == "Test Page"
+            docs = parser.ingest("https://example.com")
+            assert len(docs) == 1 and docs[0].title == "Test Page"
 
-    def test_ingest_returns_none_on_fetch_failure(self):
+    def test_ingest_returns_empty_list_on_fetch_failure(self):
         parser = HTMLParser()
         with patch.object(parser, "fetch", return_value=None):
-            assert parser.ingest("https://bad-url.com") is None
+            assert parser.ingest("https://bad-url.com") == []
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +264,7 @@ class TestDataIngestor:
     def test_ingest_failed_parse_returns_zero(self):
         from ingestor import DataIngestor
         ingestor = DataIngestor(config_path="/nonexistent/config.yaml")
-        ingestor.parsers["html"] = MagicMock(ingest=MagicMock(return_value=None))
+        ingestor.parsers["html"] = MagicMock(ingest=MagicMock(return_value=[]))
         assert ingestor.ingest(["https://bad.com"]) == 0
 
     def test_config_loading(self, tmp_path):

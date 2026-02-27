@@ -139,24 +139,24 @@ class PDFParser(BaseParser):
     def source_type(self) -> str:
         return "pdf"
 
-    def parse(self, content: bytes, source: str) -> ParsedDocument:
+    def parse(self, content: bytes, source: str) -> list[ParsedDocument]:
         text = extract_pdf_text(content) # To be implemented
 
-        return ParsedDocument(
+        return [ParsedDocument(
             source=source,
             title="Extracted title",
             content=text,
             metadata={"pages": page_count},
             timestamp=self._current_timestamp(),
             source_type=self.source_type
-        )
+        )]
 
     def fetch(self, source: str) -> bytes:
         with open(source, "rb") as f:
             return f.read()
 ```
 
-The parse function should return a ParsedDocument object containing the extracted text and metadata.
+The parse function should return a list of ParsedDocument objects. Single-document sources (like HTML or PDF) return a list of length one; multi-record sources (like CSV) can return multiple documents.
 
 3. The parser is automatically discovered and registered on container restart
 
