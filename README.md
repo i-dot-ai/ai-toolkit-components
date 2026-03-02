@@ -51,7 +51,13 @@ Choose your path:
 | **Use/adapt an existing application** | [User Guide → Applications](#applications) |
 | **Use/adapt individual components** | [User Guide → Components](#components) |
 | **Build new components or applications** | [Development Guide](#development-guide) |
-| **Contribute back to the community** | [Contributing](#contributing) |
+| **Contribute back to the community** | [Contributing](docs/conributing.md) |
+
+## Prerequisites
+
+All paths — running an application, using individual components, or developing new ones — require Docker and Docker Compose. See the [Prerequisites guide](docs/prerequisites.md) for installation instructions for macOS, Windows, and Linux.
+
+---
 
 ## User Guide
 
@@ -69,7 +75,7 @@ The following applications are available:
 
 To get started, navigate to the application's directory or copy its `docker-compose.yaml` to your project. Each application defines the services and components it uses.
 
-Ensure you have Docker, Docker Desktop (or equivalent) and Docker Compose installed on your system. You can then run the application by executing the following command in the terminal from the application's directory:
+Ensure you have Docker and Docker Compose installed (see the [Prerequisites guide](docs/prerequisites.md)). You can then run the application by executing the following command in the terminal from the application's directory:
 
 ```bash
 docker compose up -d
@@ -151,7 +157,7 @@ The `components/` directory contains modular services that can be independently 
 
 ### Quick Start
 
-1. Ensure Docker and Docker Compose are installed on your system, along with Docker Desktop (or equivalent).
+1. Ensure Docker and Docker Compose are installed — see the [Prerequisites guide](docs/prerequisites.md) if you haven't set these up yet.
 
 2. **Build and start services**:
    ```bash
@@ -249,5 +255,7 @@ The CI/CD system runs the following workflows:
 2. Include tests for new functionality
 3. Verify all GitHub Actions pass
 4. Maintain documentation updates
+
+See [Contributing](docs/conributing.md) for a full guide on adding new components, including templates, testing requirements, and the pull request checklist.
 
 See [LICENSE](LICENSE) for terms.

@@ -17,6 +17,10 @@ A containerised Qdrant vector database with plugin support for automatic collect
 | 6333 | HTTP | REST API |
 | 6334 | gRPC | gRPC API |
 
+## Prerequisites
+
+Docker and Docker Compose are required. See the [Prerequisites guide](../../docs/prerequisites.md) for installation instructions.
+
 ## Usage
 
 ### Docker

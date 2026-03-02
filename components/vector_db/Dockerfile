@@ -5,8 +5,9 @@ FROM qdrant/qdrant:latest
 RUN apt-get update && apt-get install -y --no-install-recommends \
 python3 python3-pip python3-venv curl
 
-# Install Qdrant client and PyYAML
-RUN pip install qdrant-client pyyaml --break-system-packages && \
+# Install Python dependencies
+COPY src/requirements.txt /app/defaults/requirements.txt
+RUN pip install --break-system-packages -r /app/defaults/requirements.txt && \
     rm -rf /var/lib/apt/lists/*
 
 # Expose default ports

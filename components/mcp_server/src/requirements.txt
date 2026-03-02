@@ -1,0 +1,7 @@
+mcp
+uvicorn
+starlette
+sse-starlette
+pyyaml
+qdrant-client[fastembed]
+# Add extra packages here — they will be installed on the next container restart

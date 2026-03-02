@@ -34,6 +34,10 @@ A vector database application for ingesting, storing, and querying document embe
 - MCP protocol server for AI agent tool access
 - Pluggable custom tools and backends for the MCP server
 
+## Prerequisites
+
+Docker and Docker Compose are required. See the [Prerequisites guide](../../docs/prerequisites.md) for installation instructions.
+
 ## Usage
 
 Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you wish to run the application, then run all commands from that directory.

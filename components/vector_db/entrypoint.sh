@@ -74,6 +74,13 @@ done
 
 echo "Qdrant is up!"
 
+# Install any extra packages added to the custom requirements file
+if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
+    echo "Copying default: requirements.txt"
+    cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
+fi
+pip install --quiet --break-system-packages -r "$CUSTOM_DIR/requirements.txt"
+
 # Run all Python plugins in the custom plugins directory
 if ls "$CUSTOM_DIR/plugins/"*.py >/dev/null 2>&1; then
     echo "Running plugins..."

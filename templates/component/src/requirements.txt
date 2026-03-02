@@ -1,0 +1,12 @@
+# Python dependencies for COMPONENT_NAME  # TODO: replace COMPONENT_NAME
+#
+# List one package per line. These are installed at image build time,
+# and also copied to the mounted volume on first run so that users can
+# add extra packages without rebuilding the image — just append to this
+# file and restart the container.
+#
+# TODO: add your component's dependencies below
+# Examples:
+# requests
+# pyyaml
+# fastapi
