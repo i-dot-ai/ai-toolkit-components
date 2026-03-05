@@ -67,7 +67,7 @@ services:
           memory: 1G
           cpus: '0.5'
 
-   vector_query:
+  vector_query:
       image: ghcr.io/i-dot-ai/ai-toolkit-vector-query:latest
       container_name: vector_query
       depends_on:
