@@ -61,9 +61,10 @@ docker compose run data_ingestor \
   https://example.com \
   https://example.com/page2
 
-# Ingest from a file
-docker compose run -v $(pwd)/urls.txt:/app/urls.txt \
-  data_ingestor -f /app/urls.txt
+# Ingest from a file containing a list of URLs to ingest.
+# Note that the container can read files from input only (see [Ingest Local Files](#ingest-local-files) below).
+cp /path/to/urls.txt input/urls.txt
+docker compose run data_ingestor -f /input/urls.txt
 
 # Specify a collection name
 docker compose run data_ingestor -c my_collection https://example.com

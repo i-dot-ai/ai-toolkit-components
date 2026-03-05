@@ -99,17 +99,14 @@ backend_settings:
 # enabled_tools:
 #   - search
 #   - list_collections
-
-# Server settings
-server:
-  host: "0.0.0.0"
-  port: 8080
 ```
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `MCP_SERVER_HOST` | Host address the server binds to | `0.0.0.0` |
+| `MCP_SERVER_PORT` | MCP server port | `8080` |
 | `VECTOR_DB_HOST` | Vector database hostname | `localhost` |
 | `VECTOR_DB_PORT` | Vector database port | `6333` |
 
