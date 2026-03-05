@@ -20,6 +20,12 @@ def component_endpoint(request):
     # Wait for component to be ready
     wait_for_service(service_name)
 
+    # If the component has a health check, wait for it to pass before yielding
+    try:
+        verify_service_health(service_name)
+    except ValueError:
+        pass  # No health check configured; running state is sufficient
+
     yield f"http://localhost:{internal_port}"
 
     # Cleanup component
