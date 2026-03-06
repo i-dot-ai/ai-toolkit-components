@@ -28,27 +28,26 @@ INGESTOR_SERVICE = "data_ingestor"
 # Tests
 # ---------------------------------------------------------------------------
 
+@pytest.mark.parametrize("component_service", [INGESTOR_SERVICE], indirect=True)
 @pytest.mark.parametrize("component_endpoint", [("vector_db", VECTOR_DB_PORT)], indirect=True)
 class TestDataIngestorContainer:
     """Functional tests that exercise the full data_ingestor pipeline
     against a real Qdrant (vector_db) container."""
 
-    def run_ingestor(self, *args, env_extra=None, timeout=120, volumes=None):
-        """Run the data_ingestor container with the given CLI args.
+    def run_ingestor(self, *args, env_extra=None, timeout=120):
+        """Run the data_ingestor via exec against the running container.
 
         Uses the compose network so data_ingestor can reach vector_db
         by service name.
         """
         cmd = [
-            "docker", "compose", "run", "--rm",
+            "docker", "compose", "exec", "-T",
             "-e", "VECTOR_DB_HOST=vector_db",
             "-e", f"VECTOR_DB_PORT={VECTOR_DB_PORT}",
         ]
         for k, v in (env_extra or {}).items():
             cmd += ["-e", f"{k}={v}"]
-        for v in (volumes or []):
-            cmd += ["-v", v]
-        cmd += [INGESTOR_SERVICE, *args]
+        cmd += [INGESTOR_SERVICE, "run", *args]
 
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
@@ -94,7 +93,8 @@ class TestDataIngestorContainer:
     def test_ingest_from_file(self, component_endpoint):
         """Ingest URLs listed in a file."""
         collection = "test-ingest-file"
-        # Create a temporary file with URLs and mount it into the container
+        container_path = "/tmp/test_urls.txt"
+
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".txt", delete=False
         ) as f:
@@ -103,12 +103,11 @@ class TestDataIngestorContainer:
             tmp_path = f.name
 
         try:
-            container_path = "/tmp/test_urls.txt"
-            result = self.run_ingestor(
-                "-c", collection,
-                "--file", container_path,
-                volumes=[f"{tmp_path}:{container_path}:ro"],
+            subprocess.run(
+                ["docker", "compose", "cp", tmp_path, f"{INGESTOR_SERVICE}:{container_path}"],
+                check=True,
             )
+            result = self.run_ingestor("-c", collection, "--file", container_path)
             assert result.returncode == 0
 
             resp = requests.get(

@@ -23,22 +23,24 @@ QUERY_SERVICE = "vector_query"
 # Tests
 # ---------------------------------------------------------------------------
 
+@pytest.mark.parametrize("component_service", [QUERY_SERVICE], indirect=True)
 @pytest.mark.parametrize("component_endpoint", [("vector_db", VECTOR_DB_PORT)], indirect=True)
 class TestVectorQueryContainer:
     """Functional tests that exercise the vector_query CLI against a real
     Qdrant (vector_db) container."""
 
     def run_query(self, *args, timeout=120):
-        """Run the vector_query container with the given CLI args.
+        """Run the vector_query via exec against the running container.
 
         Uses the compose network so vector_query can reach vector_db
         by service name.
         """
         cmd = [
-            "docker", "compose", "run", "--rm",
+            "docker", "compose", "exec", "-T",
             "-e", "VECTOR_DB_HOST=vector_db",
             "-e", f"VECTOR_DB_PORT={VECTOR_DB_PORT}",
             QUERY_SERVICE,
+            "run",
             *args,
         ]
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)

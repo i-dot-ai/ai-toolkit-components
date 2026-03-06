@@ -34,6 +34,21 @@ def component_endpoint(request):
 
 
 @pytest.fixture(scope="module")
+def component_service(request):
+    """Start a long-running component that has no HTTP endpoint (e.g. a CLI service)."""
+    service_name = request.param
+
+    subprocess.run(["docker", "compose", "build", service_name], check=True)
+    subprocess.run(["docker", "compose", "up", "-d", service_name], check=True)
+    wait_for_service(service_name)
+
+    yield
+
+    subprocess.run(["docker", "compose", "stop", service_name])
+    subprocess.run(["docker", "compose", "rm", "-f", service_name])
+
+
+@pytest.fixture(scope="module")
 def application_endpoint(request, tmp_path_factory):
     """Set up a clean application directory, start all services, and yield the app dir."""
     app_name = request.param
