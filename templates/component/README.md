@@ -22,6 +22,7 @@ services:
   COMPONENT_NAME:
     image: ghcr.io/i-dot-ai/ai-toolkit-COMPONENT_NAME:latest
     container_name: COMPONENT_NAME
+    restart: unless-stopped
     volumes:
       - ./code/COMPONENT_NAME:/app/custom
     ports:
@@ -39,8 +40,14 @@ services:
           cpus: "0.5"
 ```
 
-<!-- TODO: Add any usage instructions specific to your component, such as
-     CLI commands (for run-once tasks) or API examples (for services). -->
+<!-- TODO: Add usage instructions specific to your component.
+     For HTTP services, show API or MCP client examples.
+     For CLI components, show docker compose exec examples:
+
+```bash
+docker compose exec COMPONENT_NAME run <args>
+```
+-->
 
 ## Volume Mounts
 

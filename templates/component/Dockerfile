@@ -72,14 +72,23 @@ RUN mkdir -p /app/custom
 ENV PYTHONPATH="/app/custom:/app"
 
 # ----------------------------------------------------------------------------
-# Health check — required for long-running services so that dependent
-# containers can use `depends_on: condition: service_healthy`.
+# Health check — required for HTTP services so that dependent containers can
+# use `depends_on: condition: service_healthy`.
 # TODO: replace COMPONENT_PORT with your actual port number
-# TODO: remove this entire block if your component is a run-once task  [run-once]
+# TODO: remove this entire block for CLI components (no HTTP endpoint)
 # ----------------------------------------------------------------------------
-HEALTHCHECK --interval=5s --timeout=3s --retries=12 \           # [service]
-  CMD curl -f http://localhost:COMPONENT_PORT/health || exit 1   # [service]
+HEALTHCHECK --interval=5s --timeout=3s --retries=12 \
+  CMD curl -f http://localhost:COMPONENT_PORT/health || exit 1
 
-EXPOSE COMPONENT_PORT  # TODO: replace with your actual port number  # [service]
+EXPOSE COMPONENT_PORT  # TODO: replace with your actual port number
+
+# ----------------------------------------------------------------------------
+# 'run' wrapper — CLI components only.
+# Lets users invoke the component with: docker compose exec COMPONENT_NAME run <args>
+# TODO: replace COMPONENT_MAIN with your actual filename (e.g. ingestor.py)
+# TODO: remove this block for HTTP services (they are invoked via their API, not exec)
+# ----------------------------------------------------------------------------
+# RUN printf '#!/bin/sh\nexec python /app/COMPONENT_MAIN "$@"\n' > /usr/local/bin/run && \
+#     chmod +x /usr/local/bin/run
 
 ENTRYPOINT ["/app/entrypoint.sh"]
