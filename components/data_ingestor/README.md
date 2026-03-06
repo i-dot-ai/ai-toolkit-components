@@ -28,24 +28,23 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Usage
 
-The data ingestor is designed to run alongside a vector database via docker compose. Use `docker compose run` to execute it within the compose network so it can reach the vector_db service by name.
+The data ingestor is designed to run alongside a vector database via docker compose. Start the stack with `docker compose up -d`, then use `docker compose exec` to run ingestion commands against the running container.
 
 ```bash
 # Ingest a single URL
-docker compose run data_ingestor https://example.com
+docker compose exec data_ingestor run https://example.com
 
 # Ingest multiple URLs
-docker compose run data_ingestor \
+docker compose exec data_ingestor run \
   https://example.com \
   https://example.com/page2
 
-# Ingest from a file
-docker compose run \
-  -v $(pwd)/urls.txt:/app/urls.txt \
-  data_ingestor -f /app/urls.txt
+# Ingest from a file (copy the file in first, then run)
+docker compose cp urls.txt data_ingestor:/input/urls.txt
+docker compose exec data_ingestor run -f /input/urls.txt
 
 # Specify collection name
-docker compose run data_ingestor \
+docker compose exec data_ingestor run \
   -c my_collection \
   https://example.com
 ```

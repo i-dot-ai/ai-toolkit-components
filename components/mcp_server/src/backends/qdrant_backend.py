@@ -111,6 +111,14 @@ class QdrantBackend(BaseBackend):
             ),
         )
 
+    def is_healthy(self) -> bool:
+        """Return True if Qdrant is reachable."""
+        try:
+            self.client.get_collections()
+            return True
+        except Exception:
+            return False
+
     def search(
         self, collection_name: str, query_text: str, limit: int = 10
     ) -> list[dict]:

@@ -73,6 +73,11 @@ class BaseBackend(ABC):
         ...
 
     @abstractmethod
+    def is_healthy(self) -> bool:
+        """Return True if the backend is reachable and operational."""
+        ...
+
+    @abstractmethod
     def add_documents(
         self, collection_name: str, documents: list[dict]
     ) -> int:

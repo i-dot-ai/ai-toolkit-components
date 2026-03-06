@@ -21,29 +21,29 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Usage
 
-`vector_query` is designed to run alongside a vector database via docker compose. Use `docker compose run` to execute it within the compose network so it can reach the `vector_db` service by name.
+`vector_query` is designed to run alongside a vector database via docker compose. Start the stack with `docker compose up -d`, then use `docker compose exec` to run query commands against the running container.
 
 ```bash
 # List all collections
-docker compose run vector_query list
+docker compose exec vector_query run list
 
 # Add a document
-docker compose run vector_query add documents --text "some text to embed"
+docker compose exec vector_query run add --collection documents --text "some text to embed"
 
 # Add a document with metadata
-docker compose run vector_query add \
+docker compose exec vector_query run add \
   --collection documents \
   --text "some text to embed" \
   --metadata '{"source": "manual", "author": "alice"}'
 
 # Search a collection
-docker compose run vector_query search --query "query text" --collection documents
+docker compose exec vector_query run search --query "query text" --collection documents
 
 # Retrieve documents from a collection
-docker compose run vector_query get --collection documents
+docker compose exec vector_query run get --collection documents
 
 # Delete a collection
-docker compose run vector_query delete --collection documents
+docker compose exec vector_query run delete --collection documents
 ```
 
 ### Docker Compose
@@ -213,7 +213,7 @@ class CountQuery(BaseQuery):
 
 This automatically registers `count` as a new subcommand:
 ```bash
-docker compose run vector_query count --collection documents
+docker compose exec vector_query run count --collection documents
 ```
 
 3. The query is automatically discovered and registered on container restart
