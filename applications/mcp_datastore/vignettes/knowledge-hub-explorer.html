@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Knowledge Hub Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0a0e27;
+    color: #e0e6ff;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated gradient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 80%, rgba(59, 130, 246, 0.06) 0%, transparent 50%);
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    color: #8b92b3;
+    font-size: 0.95rem;
+    font-weight: 300;
+  }
+
+  header p strong {
+    color: #a5b4fc;
+    font-weight: 500;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #c084fc;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7094;
+    margin-top: 0.2rem;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.8rem;
+    user-select: none;
+  }
+
+  .legend-item:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .legend-item.dimmed {
+    opacity: 0.3;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .legend-count {
+    color: #6b7094;
+    font-size: 0.7rem;
+  }
+
+  /* Canvas area */
+  .viz-wrapper {
+    position: relative;
+    margin: 1rem auto;
+    max-width: 1100px;
+  }
+
+  canvas {
+    display: block;
+    margin: 0 auto;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.3);
+    cursor: crosshair;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(15, 18, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    max-width: 360px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .tooltip.visible { opacity: 1; }
+
+  .tooltip-category {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+
+  .tooltip-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.4rem;
+    line-height: 1.3;
+  }
+
+  .tooltip-content {
+    font-size: 0.78rem;
+    color: #8b92b3;
+    line-height: 1.5;
+  }
+
+  .tooltip-url {
+    font-size: 0.7rem;
+    color: #6366f1;
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    position: fixed;
+    top: 0; right: -480px;
+    width: 480px;
+    height: 100vh;
+    background: rgba(12, 15, 38, 0.98);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    z-index: 100;
+    transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    padding: 2rem;
+  }
+
+  .detail-panel.open { right: 0; }
+
+  .detail-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #8b92b3;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+  }
+
+  .detail-close:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+
+  .detail-badge {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 1rem;
+  }
+
+  .detail-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+  }
+
+  .detail-content {
+    font-size: 0.9rem;
+    color: #9ba2c2;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+
+  .detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .detail-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Overlay */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: #4b5078;
+  }
+
+  .footer a {
+    color: #6366f1;
+    text-decoration: none;
+  }
+
+  /* Instruction hint */
+  .hint {
+    text-align: center;
+    font-size: 0.78rem;
+    color: #4b5078;
+    margin-top: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AI Knowledge Hub Explorer</h1>
+    <p>Semantic map of <strong>73 pages</strong> from the <strong>i.AI Knowledge Hub</strong> -- embedded, stored and visualised</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-value" id="statDocs">0</div><div class="stat-label">Documents</div></div>
+    <div class="stat"><div class="stat-value">384</div><div class="stat-label">Dimensions</div></div>
+    <div class="stat"><div class="stat-value">6</div><div class="stat-label">Categories</div></div>
+    <div class="stat"><div class="stat-value">Cosine</div><div class="stat-label">Distance</div></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="viz-wrapper">
+    <canvas id="canvas"></canvas>
+    <div class="tooltip" id="tooltip">
+      <div class="tooltip-category" id="ttCat"></div>
+      <div class="tooltip-title" id="ttTitle"></div>
+      <div class="tooltip-content" id="ttContent"></div>
+      <div class="tooltip-url" id="ttUrl"></div>
+    </div>
+  </div>
+
+  <div class="hint">Hover to preview -- click a point to read full details -- click legend to filter categories</div>
+
+  <div class="footer">
+    Built with <a href="https://github.com/your-org/kh-blueprints">kh-blueprints</a> mcp_datastore
+    &middot; Embeddings: all-MiniLM-L6-v2 &middot; Projection: PCA
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="detail-panel" id="detailPanel">
+  <button class="detail-close" id="detailClose">&times;</button>
+  <div class="detail-badge" id="detailBadge"></div>
+  <div class="detail-title" id="detailTitle"></div>
+  <div class="detail-content" id="detailContent"></div>
+  <a class="detail-link" id="detailLink" href="#" target="_blank">Visit page &rarr;</a>
+</div>
+
+<script>
+const DATA = [{"title":"Parlex","source":"https://ai.gov.uk/knowledge-hub/use-cases/parlex/","category":"use-cases","content":"Parlex Forecasting parliamentary reaction through past debate analysis. Over 500 pages worth of debate transcripts are added to the parliamentary record each day. There is a strong need for tools that can navigate through this volume of data and find insight.","x":0.869,"y":0.703},{"title":"AI governance","source":"https://ai.gov.uk/knowledge-hub/how-to/governance/","category":"how-to","content":"AI governance -- This information complements and updates the AI Playbook for the UK Government. It reflects the latest guidance and best practice. To successfully develop an AI programme, you'll need strong governance processes.","x":0.1846,"y":0.581},{"title":"Develop a risk register","source":"https://ai.gov.uk/knowledge-hub/prompts/develop-a-risk-register/","category":"prompts","content":"Develop a structured risk register and understand impact with scoring, mitigation actions and key indicators. Verified by Government Project Delivery Professionals.","x":0.0826,"y":0.4478},{"title":"Barking & Dagenham AI Search and Webchat","source":"https://ai.gov.uk/knowledge-hub/use-cases/barking-and-dagenham-ai-search-and-webchat/","category":"use-cases","content":"Streamlining access to council services and information through AI-powered search and chat. Residents find it cumbersome to interact with the council's website. Traditional search functions return poor results.","x":0.7146,"y":0.7094},{"title":"Summarise daily actions","source":"https://ai.gov.uk/knowledge-hub/prompts/summarise-daily-actions/","category":"prompts","content":"Review your emails and chat messages to generate a clear table of actions. This prompt assumes your AI assistant has access to your emails, calendars and chat messages.","x":0.299,"y":0.7495},{"title":"Create a risk analysis document","source":"https://ai.gov.uk/knowledge-hub/prompts/create-a-risk-analysis-document/","category":"prompts","content":"Create a detailed risk analysis document with insights and team actions for stakeholder review. Verified by Government Project Delivery Professionals.","x":0.0512,"y":0.4768},{"title":"Understand AI","source":"https://ai.gov.uk/knowledge-hub/how-to/understanding-ai/","category":"how-to","content":"This information complements and updates the AI Playbook for the UK Government. Provides a brief history of AI, its different types, its applications and its limitations.","x":0.2801,"y":0.6991},{"title":"Stroke AI","source":"https://ai.gov.uk/knowledge-hub/tools/stroke-ai/","category":"tools","content":"Interpreting brain scans with AI to improve outcomes for stroke patients. A stroke is a life-threatening emergency -- around 2 million brain cells are lost every minute, making every second count.","x":0.6658,"y":0.565},{"title":"Health Deterioration & Fall Prediction","source":"https://ai.gov.uk/knowledge-hub/use-cases/health-deterioration-and-fall-prediction-tool/","category":"use-cases","content":"Predicting Health Deterioration in NHS Home Care. Preventable hospital admissions, particularly among older adults, place significant strain on the NHS. Falls alone account for over 4 million hospital bed days.","x":0.7804,"y":0.0218},{"title":"Tools (index)","source":"https://ai.gov.uk/knowledge-hub/use-cases/","category":"use-cases","content":"Tool library -- Discover how AI is making a difference across the public sector. These tools showcase projects that are already delivering impact.","x":0.4933,"y":0.5795},{"title":"Explain a complex topic","source":"https://ai.gov.uk/knowledge-hub/prompts/explain-a-complex-topic-for-a-beginner/","category":"prompts","content":"Explain any complex topic in a clear and simple way for a beginner. Uses analogies and examples suitable for somebody completely new to the subject.","x":0.1907,"y":0.79},{"title":"Limbic Access","source":"https://ai.gov.uk/knowledge-hub/use-cases/limbic-access/","category":"use-cases","content":"Streamlining access to therapy through a chatbot. Accessing mental health support can be a difficult first step. Traditional self-referral methods can be time-consuming and off-putting.","x":0.8268,"y":0.5476},{"title":"Redbox","source":"https://ai.gov.uk/knowledge-hub/use-cases/redbox/","category":"use-cases","content":"Harnessing AI for documents up to OFFICIAL-SENSITIVE. The Ministerial red box has been the primary destination for state papers since the mid-19th century. Redbox leverages AI to search through thousands of documents.","x":0.7112,"y":1.0},{"title":"Create a project brief","source":"https://ai.gov.uk/knowledge-hub/prompts/create-a-project-brief/","category":"prompts","content":"Draft a project brief using guided, step-by-step questions. Verified by Government Project Delivery Professionals.","x":0.1539,"y":0.7713},{"title":"Analyse data and text","source":"https://ai.gov.uk/knowledge-hub/capability/analyse-data-and-text/","category":"capability","content":"AI can help you review text and data to find themes, check standards and predict outcomes. Use AI to identify patterns in feedback, check compliance with regulations or forecast trends.","x":0.1677,"y":0.7306},{"title":"Roofing Inspection Drones","source":"https://ai.gov.uk/knowledge-hub/tools/roofing-inspection-drones/","category":"tools","content":"Modernising roofing inspections with drone-powered insights. Traditional inspections relied heavily on scaffolding, which posed safety risks and required extensive setup time.","x":0.5739,"y":0.2215},{"title":"Find information","source":"https://ai.gov.uk/knowledge-hub/capability/find-information/","category":"capability","content":"AI can help you review large datasets and answer questions quickly. Use chatbots to answer questions or semantic search to review large amounts of data.","x":0.5994,"y":0.8756},{"title":"Mia","source":"https://ai.gov.uk/knowledge-hub/use-cases/mia/","category":"use-cases","content":"Streamlining breast cancer screening with AI. NHS Grampian faced the challenge of improving breast cancer detection rates while managing growing pressure on radiologist capacity.","x":0.6752,"y":0.4434},{"title":"Minute","source":"https://ai.gov.uk/knowledge-hub/tools/minute/","category":"tools","content":"Transcribing and auto-generating meeting summaries. Millions of public servants deliver critical services through meetings -- they then spend hours processing and summarising outputs.","x":0.8262,"y":0.8514},{"title":"GCS Assist","source":"https://ai.gov.uk/knowledge-hub/tools/gcs-assist/","category":"tools","content":"Accelerating content creation for government communicators. Supporting 6,500 communicators -- lack of time identified as a key barrier to innovation.","x":0.6011,"y":0.7125},{"title":"Roofing Inspection Drones","source":"https://ai.gov.uk/knowledge-hub/use-cases/roofing-inspection-drones/","category":"use-cases","content":"Modernising roofing inspections with drone-powered insights. Traditional housing inspections relied heavily on scaffolding, which posed safety risks.","x":0.5739,"y":0.2215},{"title":"Minute","source":"https://ai.gov.uk/knowledge-hub/use-cases/minute/","category":"use-cases","content":"Transcribing and auto-generating meeting summaries. Millions of public servants deliver critical services through meetings, interviews and appointments.","x":0.8262,"y":0.8514},{"title":"Caddy","source":"https://ai.gov.uk/knowledge-hub/tools/caddy/","category":"tools","content":"Supporting customer service agents with fast, precise information. Citizens Advice helped over 2.5 million people with one-to-one advice. Highly trained advisors need fast access to information.","x":0.6379,"y":0.4065},{"title":"Automated Call Routing","source":"https://ai.gov.uk/knowledge-hub/use-cases/automated-call-routing/","category":"use-cases","content":"Connecting people to local support faster through an AI voice assistant. Citizens Advice Scotland comprises 59 local and independent bureaux.","x":0.7674,"y":0.5679},{"title":"Hey Geraldine","source":"https://ai.gov.uk/knowledge-hub/use-cases/hey-geraldine/","category":"use-cases","content":"Delivering instant, personalised support to social care staff. Peterborough City Council was facing growing pressure on its adult social care teams.","x":0.6858,"y":0.425},{"title":"Content Education Store","source":"https://ai.gov.uk/knowledge-hub/use-cases/content-education-store/","category":"use-cases","content":"Enabling better AI tools through curated educational content. Teachers face high workload pressures managing marking, lesson planning, and administrative work.","x":0.6216,"y":0.8383},{"title":"AI Knowledge Hub","source":"https://ai.gov.uk/knowledge-hub/","category":"overview","content":"Explore AI in government -- Find tools. Explore approaches. Improve delivery. Resources shared by the public sector community.","x":0.2755,"y":0.8497},{"title":"Simply Readable","source":"https://ai.gov.uk/knowledge-hub/use-cases/simply-readable/","category":"use-cases","content":"Improving inclusivity by automating Easy Read document creation. 1.5 million people in the UK live with a learning disability -- councils must provide accessible information.","x":0.8974,"y":0.7081},{"title":"Hey Geraldine","source":"https://ai.gov.uk/knowledge-hub/tools/hey-geraldine/","category":"tools","content":"Delivering instant, personalised support to social care staff. Peterborough City Council was facing growing pressure on its adult social care teams.","x":0.6858,"y":0.425},{"title":"Logo Detection Toolkit","source":"https://ai.gov.uk/knowledge-hub/tools/logo-detection-and-classification-toolkit/","category":"tools","content":"Automating the detection of unauthorised logo use on websites. Misuse of HMRC, HMG, and VOA logos by third-party websites poses a serious risk to the public.","x":0.9211,"y":0.4569},{"title":"Prioritise your workload","source":"https://ai.gov.uk/knowledge-hub/prompts/prioritise-your-workload/","category":"prompts","content":"Build a daily or weekly schedule that prioritises your workload using time management best practice. Works with AI assistants that have access to your emails and calendars.","x":0.3613,"y":0.7323},{"title":"Health Deterioration & Fall Prediction","source":"https://ai.gov.uk/knowledge-hub/tools/health-deterioration-and-fall-prediction-tool/","category":"tools","content":"Predicting Health Deterioration in NHS Home Care. Preventable hospital admissions, particularly among older adults, place significant strain on the NHS.","x":0.7804,"y":0.0218},{"title":"Tools (index)","source":"https://ai.gov.uk/knowledge-hub/tools/","category":"tools","content":"Tool library -- Discover how AI is making a difference across the public sector. These tools showcase projects already delivering impact.","x":0.4933,"y":0.5795},{"title":"Develop a change plan","source":"https://ai.gov.uk/knowledge-hub/prompts/develop-a-change-plan/","category":"prompts","content":"Build a change management plan with messaging, stakeholder analysis and training timeline. Verified by Government Project Delivery Professionals.","x":0.0975,"y":0.6062},{"title":"Parlex","source":"https://ai.gov.uk/knowledge-hub/tools/parlex/","category":"tools","content":"Forecasting parliamentary reaction through past debate analysis. Over 500 pages worth of debate transcripts are added to the parliamentary record each day.","x":0.869,"y":0.703},{"title":"Prompt library","source":"https://ai.gov.uk/knowledge-hub/prompts/","category":"prompts","content":"Use this user-submitted library of AI instructions (prompts) to support your work in government. Share your prompt if you have created one others might find helpful.","x":0.2451,"y":0.8864},{"title":"Automated Call Routing","source":"https://ai.gov.uk/knowledge-hub/tools/automated-call-routing/","category":"tools","content":"Connecting people to local support faster through an AI voice assistant. Citizens Advice Scotland comprises 59 local and independent bureaux.","x":0.7674,"y":0.5679},{"title":"Consult","source":"https://ai.gov.uk/knowledge-hub/use-cases/consult/","category":"use-cases","content":"Processing consultation responses to support policymaking. Current method is manual, costing up to \u00a3100,000 per consultation and taking months.","x":0.5117,"y":0.608},{"title":"Create a communication plan","source":"https://ai.gov.uk/knowledge-hub/prompts/create-a-communication-plan/","category":"prompts","content":"Build a communication plan using OASIS and GCS frameworks, including an evaluation strategy. Verified by Government Project Delivery Professionals.","x":0.16,"y":0.7176},{"title":"Redbox","source":"https://ai.gov.uk/knowledge-hub/tools/redbox/","category":"tools","content":"Harnessing AI for documents up to OFFICIAL-SENSITIVE. Redbox leverages AI to search through thousands of documents, chat with them and summarise them into tailored briefings.","x":0.7112,"y":1.0},{"title":"Check business case deliverability","source":"https://ai.gov.uk/knowledge-hub/prompts/check-if-your-business-case-is-deliverable/","category":"prompts","content":"Review the management and commercial cases for readiness to proceed, and get actionable recommendations. Verified by Government Project Delivery Professionals.","x":0.0,"y":0.6439},{"title":"Review Automoderation Tool","source":"https://ai.gov.uk/knowledge-hub/use-cases/review-automoderation-tool/","category":"use-cases","content":"Automating content moderation on NHS.UK. The website receives approximately 100,000 reviews annually, each carefully reviewed for compliance with moderation policies.","x":0.9652,"y":0.4539},{"title":"Prepare for a briefing","source":"https://ai.gov.uk/knowledge-hub/prompts/prepare-for-a-briefing/","category":"prompts","content":"Draft a strategic briefing for senior stakeholders summarising the key benefits of a programme. Verified by Government Project Delivery Professionals.","x":0.0666,"y":0.6535},{"title":"Caddy","source":"https://ai.gov.uk/knowledge-hub/use-cases/caddy/","category":"use-cases","content":"Supporting customer service agents with fast, precise information. Citizens Advice helped over 2.5 million people with one-to-one advice.","x":0.6379,"y":0.4065},{"title":"Build a stakeholder engagement plan","source":"https://ai.gov.uk/knowledge-hub/prompts/build-a-stakeholder-engagement-plan/","category":"prompts","content":"Build a stakeholder management plan, analysing interest and influence to gain support and reduce resistance.","x":0.1138,"y":0.6046},{"title":"Consult","source":"https://ai.gov.uk/knowledge-hub/tools/consult/","category":"tools","content":"Processing consultation responses to support policymaking. An AI tool to analyse responses to public consultations -- can process thousands of responses in hours.","x":0.5117,"y":0.608},{"title":"Document Translate","source":"https://ai.gov.uk/knowledge-hub/use-cases/document-translate/","category":"use-cases","content":"Cutting document translation costs using AI. Traditional translation services are expensive and slow, often taking 1-2 weeks per translation.","x":1.0,"y":0.9868},{"title":"Write a business case","source":"https://ai.gov.uk/knowledge-hub/prompts/write-a-business-case/","category":"prompts","content":"Write a business case following the Five Case Model and UK government standards. Acts as an expert business case advisor guiding you step by step.","x":0.0117,"y":0.6881},{"title":"Build a risk mitigation plan","source":"https://ai.gov.uk/knowledge-hub/prompts/build-a-risk-mitigation-plan/","category":"prompts","content":"Build a risk management plan for your project with SMART strategies to manage risks.","x":0.0693,"y":0.5609},{"title":"Extract","source":"https://ai.gov.uk/knowledge-hub/tools/extract/","category":"tools","content":"Digitising historical planning documents. Traditional planning processes are slowed by decades of information trapped in paper maps, PDFs, handwritten notes, and scanned documents.","x":0.6513,"y":0.894},{"title":"Track mentions in emails","source":"https://ai.gov.uk/knowledge-hub/prompts/track-mentions-in-emails/","category":"prompts","content":"Review your emails and create a table showing every time someone mentioned you. Works with AI assistants that have access to your emails.","x":0.5539,"y":0.7893},{"title":"Create a business readiness plan","source":"https://ai.gov.uk/knowledge-hub/prompts/create-a-business-readiness-plan/","category":"prompts","content":"Design and create a readiness checklist and tracking mechanism to support go-live decisions. Verified by Government Project Delivery Professionals.","x":0.2084,"y":0.6494},{"title":"GCS Assist","source":"https://ai.gov.uk/knowledge-hub/use-cases/gcs-assist/","category":"use-cases","content":"Accelerating content creation for government communicators. Supporting 6,500 communicators -- lack of time was a key barrier to innovation.","x":0.6011,"y":0.7125},{"title":"Content Education Store","source":"https://ai.gov.uk/knowledge-hub/tools/content-education-store/","category":"tools","content":"Enabling better AI tools through curated educational content. Teachers face high workload pressures -- AI offers promising solutions.","x":0.6216,"y":0.8383},{"title":"Develop a business case summary","source":"https://ai.gov.uk/knowledge-hub/prompts/develop-a-business-case-summary/","category":"prompts","content":"Develop a concise summary for senior decision-makers, based on the Five Case Model. Verified by Government Project Delivery Professionals.","x":0.0574,"y":0.6639},{"title":"Review Automoderation Tool","source":"https://ai.gov.uk/knowledge-hub/tools/review-automoderation-tool/","category":"tools","content":"Automating content moderation on NHS.UK. Approximately 100,000 reviews annually must be carefully reviewed for compliance.","x":0.9652,"y":0.4539},{"title":"Create a benefits realisation plan","source":"https://ai.gov.uk/knowledge-hub/prompts/create-a-benefits-realisation-plan/","category":"prompts","content":"Create a structured plan with a benefits register, map, and risk/assumption log meeting government guidance. Verified by Government Project Delivery Professionals.","x":0.1847,"y":0.4759},{"title":"How-tos and resources","source":"https://ai.gov.uk/knowledge-hub/how-tos/","category":"overview","content":"Practical resources for using and building responsibly, including ethics, security, prompts, governance, measuring impact and buying solutions.","x":0.2272,"y":0.6968},{"title":"Consular Digital Triage","source":"https://ai.gov.uk/knowledge-hub/use-cases/consular-digital-triage/","category":"use-cases","content":"Automating consular enquiry responses. FCDO receives approximately 100,000 written consular enquiries annually from British nationals abroad.","x":0.9229,"y":0.9535},{"title":"Document Translate","source":"https://ai.gov.uk/knowledge-hub/tools/document-translate/","category":"tools","content":"Cutting document translation costs using AI. Traditional services are expensive and slow, often taking 1-2 weeks per translation.","x":1.0,"y":0.9868},{"title":"Semantic Search","source":"https://ai.gov.uk/knowledge-hub/tools/semantic-search/","category":"tools","content":"Accelerating information retrieval for justice professionals with LLM-powered search. Traditional keyword-based search creates significant time delays.","x":0.8679,"y":0.8919},{"title":"Mia","source":"https://ai.gov.uk/knowledge-hub/tools/mia/","category":"tools","content":"Streamlining breast cancer screening with AI. NHS Grampian faced the challenge of improving detection rates while managing pressure on radiologist capacity.","x":0.6752,"y":0.4434},{"title":"Improve your prompt-writing skills","source":"https://ai.gov.uk/knowledge-hub/prompts/improve-your-prompt-writing-skills/","category":"prompts","content":"Play an interactive learning game to build your prompt engineering confidence and capability. Verified by Government Project Delivery Professionals.","x":0.1413,"y":0.7273},{"title":"Real-Time Translation","source":"https://ai.gov.uk/knowledge-hub/tools/real-time-translation/","category":"tools","content":"Facilitating multilingual conversations in real-time. Border Force officers frequently need to communicate with people who speak little or no English.","x":0.9935,"y":0.9235},{"title":"Data Disambiguation Assistant","source":"https://ai.gov.uk/knowledge-hub/tools/data-disambiguation-assistant/","category":"tools","content":"Reducing manual review through automated data cleanup in the Tuberculosis Screening Programme. The UK's programme invites new migrants for testing based on country of birth.","x":0.8118,"y":0.6831},{"title":"Review project documents","source":"https://ai.gov.uk/knowledge-hub/prompts/review-project-documents-for-assurance/","category":"prompts","content":"Review project documents (business case, risk register) against UK government rules for strengths, missing content, and fixes.","x":0.1242,"y":0.653},{"title":"Consular Digital Triage","source":"https://ai.gov.uk/knowledge-hub/tools/consular-digital-triage/","category":"tools","content":"Automating consular enquiry responses. FCDO receives approximately 100,000 written consular enquiries annually.","x":0.9229,"y":0.9535},{"title":"Warm Home Discount Predictor","source":"https://ai.gov.uk/knowledge-hub/tools/warm-home-discount-energy-cost-predictor/","category":"tools","content":"Modelling energy costs to determine eligibility for the Warm Home Discount scheme. Provides a \u00a3150 rebate for low-income households.","x":0.7544,"y":0.0},{"title":"Warm Home Discount Predictor","source":"https://ai.gov.uk/knowledge-hub/use-cases/warm-home-discount-energy-cost-predictor/","category":"use-cases","content":"Modelling energy costs to determine eligibility for Warm Home Discount scheme. Provides a \u00a3150 rebate for low-income households.","x":0.7544,"y":0.0},{"title":"Simply Readable","source":"https://ai.gov.uk/knowledge-hub/tools/simply-readable/","category":"tools","content":"Improving inclusivity by automating Easy Read document creation. 1.5 million people in the UK live with a learning disability.","x":0.8974,"y":0.7081},{"title":"Limbic Access","source":"https://ai.gov.uk/knowledge-hub/tools/limbic-access/","category":"tools","content":"Streamlining access to therapy through a chatbot. Traditional self-referral methods such as web forms or phone calls can be time-consuming.","x":0.8268,"y":0.5476},{"title":"Stroke AI","source":"https://ai.gov.uk/knowledge-hub/use-cases/stroke-ai/","category":"use-cases","content":"Interpreting brain scans with AI to improve outcomes for stroke patients. Around 2 million brain cells are lost every minute.","x":0.6658,"y":0.565},{"title":"Barking & Dagenham AI Search","source":"https://ai.gov.uk/knowledge-hub/tools/barking-and-dagenham-ai-search-and-webchat/","category":"tools","content":"Streamlining access to council services and information through AI-powered search and chat.","x":0.7146,"y":0.7094}];
+
+const CATEGORIES = {
+  'tools':      { color: '#60a5fa', glow: 'rgba(96, 165, 250, 0.4)',  label: 'Tools' },
+  'use-cases':  { color: '#34d399', glow: 'rgba(52, 211, 153, 0.4)',  label: 'Use Cases' },
+  'prompts':    { color: '#c084fc', glow: 'rgba(192, 132, 252, 0.4)', label: 'Prompts' },
+  'how-to':     { color: '#fbbf24', glow: 'rgba(251, 191, 36, 0.4)',  label: 'How-to' },
+  'capability': { color: '#f472b6', glow: 'rgba(244, 114, 182, 0.4)', label: 'Capability' },
+  'overview':   { color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)', label: 'Overview' },
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+const detailPanel = document.getElementById('detailPanel');
+const overlay = document.getElementById('overlay');
+
+let W, H, dpr;
+let activeFilters = new Set(Object.keys(CATEGORIES));
+let hoveredIdx = -1;
+let animProgress = 0;
+let points = []; // { sx, sy, targetX, targetY, ... }
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = Math.min(rect.width, 1100);
+  H = Math.min(W * 0.6, 600);
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const pad = 50;
+  points = DATA.map((d, i) => ({
+    ...d,
+    idx: i,
+    targetX: pad + d.x * (W - 2 * pad),
+    targetY: pad + (1 - d.y) * (H - 2 * pad), // flip Y
+    sx: W / 2 + (Math.random() - 0.5) * 40,
+    sy: H / 2 + (Math.random() - 0.5) * 40,
+  }));
+}
+
+function buildLegend() {
+  const legend = document.getElementById('legend');
+  const counts = {};
+  DATA.forEach(d => counts[d.category] = (counts[d.category] || 0) + 1);
+
+  legend.innerHTML = '';
+  for (const [key, cat] of Object.entries(CATEGORIES)) {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-dot" style="background:${cat.color}"></span>${cat.label} <span class="legend-count">${counts[key] || 0}</span>`;
+    item.addEventListener('click', () => {
+      if (activeFilters.has(key)) activeFilters.delete(key);
+      else activeFilters.add(key);
+      item.classList.toggle('dimmed', !activeFilters.has(key));
+    });
+    legend.appendChild(item);
+  }
+}
+
+function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  const t = ease(Math.min(animProgress, 1));
+
+  // Draw connections between nearby same-category points (faint)
+  if (t > 0.5) {
+    const connAlpha = (t - 0.5) * 2 * 0.08;
+    for (let i = 0; i < points.length; i++) {
+      if (!activeFilters.has(points[i].category)) continue;
+      const pi = points[i];
+      const px = lerp(pi.sx, pi.targetX, t);
+      const py = lerp(pi.sy, pi.targetY, t);
+      for (let j = i + 1; j < points.length; j++) {
+        if (points[j].category !== pi.category) continue;
+        if (!activeFilters.has(points[j].category)) continue;
+        const pj = points[j];
+        const qx = lerp(pj.sx, pj.targetX, t);
+        const qy = lerp(pj.sy, pj.targetY, t);
+        const dist = Math.hypot(px - qx, py - qy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(px, py);
+          ctx.lineTo(qx, qy);
+          ctx.strokeStyle = CATEGORIES[pi.category].color.replace(')', `,${connAlpha * (1 - dist / 120)})`).replace('rgb', 'rgba');
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  // Draw points
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const visible = activeFilters.has(p.category);
+    const cat = CATEGORIES[p.category];
+    const x = lerp(p.sx, p.targetX, t);
+    const y = lerp(p.sy, p.targetY, t);
+
+    const isHovered = i === hoveredIdx;
+    const baseR = isHovered ? 10 : 6;
+    const alpha = visible ? 1 : 0.08;
+
+    // Glow
+    if (visible) {
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, baseR * 3);
+      grad.addColorStop(0, cat.glow);
+      grad.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(x, y, baseR * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = isHovered ? 0.8 : 0.3;
+      ctx.fill();
+    }
+
+    // Dot
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(x, y, baseR, 0, Math.PI * 2);
+    ctx.fillStyle = cat.color;
+    ctx.fill();
+
+    // White ring on hover
+    if (isHovered && visible) {
+      ctx.beginPath();
+      ctx.arc(x, y, baseR + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.8;
+      ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  if (animProgress < 1) {
+    animProgress += 0.015;
+    requestAnimationFrame(draw);
+  }
+}
+
+function findNearest(mx, my) {
+  const t = ease(Math.min(animProgress, 1));
+  let best = -1, bestDist = 30;
+  for (let i = 0; i < points.length; i++) {
+    if (!activeFilters.has(points[i].category)) continue;
+    const p = points[i];
+    const x = lerp(p.sx, p.targetX, t);
+    const y = lerp(p.sy, p.targetY, t);
+    const d = Math.hypot(mx - x, my - y);
+    if (d < bestDist) { bestDist = d; best = i; }
+  }
+  return best;
+}
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const idx = findNearest(mx, my);
+
+  if (idx !== hoveredIdx) {
+    hoveredIdx = idx;
+    draw();
+  }
+
+  if (idx >= 0) {
+    const p = points[idx];
+    const cat = CATEGORIES[p.category];
+    document.getElementById('ttCat').textContent = cat.label;
+    document.getElementById('ttCat').style.color = cat.color;
+    document.getElementById('ttTitle').textContent = p.title;
+    document.getElementById('ttContent').textContent = p.content.slice(0, 160) + '...';
+    document.getElementById('ttUrl').textContent = p.source.replace('https://ai.gov.uk', '');
+
+    let tx = mx + 16;
+    let ty = my - 10;
+    if (tx + 360 > W) tx = mx - 376;
+    if (ty + 180 > H) ty = my - 180;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+    tooltip.classList.add('visible');
+    canvas.style.cursor = 'pointer';
+  } else {
+    tooltip.classList.remove('visible');
+    canvas.style.cursor = 'crosshair';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredIdx = -1;
+  tooltip.classList.remove('visible');
+  draw();
+});
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const idx = findNearest(e.clientX - rect.left, e.clientY - rect.top);
+  if (idx < 0) return;
+
+  const p = points[idx];
+  const cat = CATEGORIES[p.category];
+  document.getElementById('detailBadge').textContent = cat.label;
+  document.getElementById('detailBadge').style.background = cat.color + '22';
+  document.getElementById('detailBadge').style.color = cat.color;
+  document.getElementById('detailTitle').textContent = p.title;
+  document.getElementById('detailContent').textContent = p.content;
+  document.getElementById('detailLink').href = p.source;
+  detailPanel.classList.add('open');
+  overlay.classList.add('open');
+});
+
+function closeDetail() {
+  detailPanel.classList.remove('open');
+  overlay.classList.remove('open');
+}
+
+document.getElementById('detailClose').addEventListener('click', closeDetail);
+overlay.addEventListener('click', closeDetail);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+// Animate document count
+function animateCount() {
+  const el = document.getElementById('statDocs');
+  let n = 0;
+  const target = DATA.length;
+  const step = () => {
+    n = Math.min(n + 2, target);
+    el.textContent = n;
+    if (n < target) requestAnimationFrame(step);
+  };
+  step();
+}
+
+// Init
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+buildLegend();
+animateCount();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
