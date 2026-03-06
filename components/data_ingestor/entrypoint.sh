@@ -32,6 +32,6 @@ if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
 fi
 pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
 
-echo "Starting data ingestor..."
+echo "Data ingestor ready. Use 'docker compose exec data_ingestor ingestor <args>' to run."
 
-exec python -u /app/ingestor.py "$@"
+exec sleep infinity

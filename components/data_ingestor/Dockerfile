@@ -31,4 +31,8 @@ RUN mkdir -p /app/custom
 # Set PYTHONPATH so custom parsers/embedders take precedence
 ENV PYTHONPATH="/app/custom:/app"
 
+# 'run' wrapper so exec commands follow a consistent pattern across components
+RUN printf '#!/bin/sh\nexec python /app/ingestor.py "$@"\n' > /usr/local/bin/run && \
+    chmod +x /usr/local/bin/run
+
 ENTRYPOINT ["/app/entrypoint.sh"]
