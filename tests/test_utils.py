@@ -127,10 +127,6 @@ class ComposeProject:
         """Run docker compose restart for a single service."""
         return self._run("restart", service, **kwargs)
 
-    def run(self, service: str, *args, **kwargs) -> subprocess.CompletedProcess:
-        """Run docker compose run --rm (one-off command in a service container)."""
-        return self._run("run", "--rm", service, *args, **kwargs)
-
     def exec(self, service: str, *args, env: dict | None = None, **kwargs) -> subprocess.CompletedProcess:
         """Run docker compose exec -T (non-interactive) in a running container."""
         kwargs.setdefault("capture_output", True)

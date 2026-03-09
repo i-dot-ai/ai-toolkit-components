@@ -29,7 +29,7 @@ def component_endpoint(request):
     )
 
     compose.build(service_name, check=True)
-    compose.up(service_name, check=True)
+    compose.up(service_name)
     compose.wait_for(service_name)
 
     try:
@@ -54,7 +54,7 @@ def component_service(request):
     compose = ComposeProject(project=project)
 
     compose.build(service_name, check=True)
-    compose.up(service_name, check=True)
+    compose.up(service_name)
     compose.wait_for(service_name)
 
     yield compose

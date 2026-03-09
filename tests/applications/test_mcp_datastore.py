@@ -133,7 +133,7 @@ class TestMcpDatastore:
         (parser_dir.parent / "sample.test").write_text("This is test content for the custom parser.")
 
         # Run data_ingestor with the test file
-        result = application_endpoint.run("data_ingestor", test_file, capture_output=True, text=True)
+        result = application_endpoint.exec("data_ingestor", "run", test_file)
         output = result.stdout + result.stderr
 
         # Check that the custom parser was used
