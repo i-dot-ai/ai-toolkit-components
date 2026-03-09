@@ -17,8 +17,8 @@ services:
 
   data_ingestor:
     build:
-      context: ./components/data_ingestor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: components/data_ingestor/Dockerfile
     image: data_ingestor:latest
     depends_on:
       - vector_db
@@ -29,8 +29,8 @@ services:
 
   mcp_server:
     build:
-      context: ./components/mcp_server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: components/mcp_server/Dockerfile
     image: mcp_server:latest
     restart: unless-stopped
     ports:
@@ -45,8 +45,8 @@ services:
 
   vector_query:
     build:
-      context: ./components/vector_query
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: components/vector_query/Dockerfile
     image: vector_query:latest
     depends_on:
       - vector_db
