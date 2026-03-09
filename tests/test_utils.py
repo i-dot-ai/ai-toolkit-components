@@ -131,6 +131,20 @@ class ComposeProject:
         """Run docker compose run --rm (one-off command in a service container)."""
         return self._run("run", "--rm", service, *args, **kwargs)
 
+    def exec(self, service: str, *args, env: dict | None = None, **kwargs) -> subprocess.CompletedProcess:
+        """Run docker compose exec -T (non-interactive) in a running container."""
+        kwargs.setdefault("capture_output", True)
+        kwargs.setdefault("text", True)
+        cmd = ["exec", "-T"]
+        for k, v in (env or {}).items():
+            cmd += ["-e", f"{k}={v}"]
+        cmd += [service, *args]
+        return self._run(*cmd, **kwargs)
+
+    def cp(self, src: str, dst: str, **kwargs) -> subprocess.CompletedProcess:
+        """Run docker compose cp."""
+        return self._run("cp", src, dst, **kwargs)
+
     def logs(self, service: str) -> str:
         """Return combined stdout+stderr logs for a service."""
         result = self._run("logs", service, capture_output=True, text=True)

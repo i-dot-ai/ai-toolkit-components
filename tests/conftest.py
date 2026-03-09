@@ -17,10 +17,14 @@ from tests.test_utils import ComposeProject
 
 @pytest.fixture(scope="module")
 def component_endpoint(request):
-    """Fixture to manage a component service for tests."""
-    service_name, internal_port = request.param
+    """Fixture to manage a component service for tests.
+
+    Param is a 3-tuple: (service_name, port, project).
+    Use a shared project name when two fixtures must share a Docker network.
+    """
+    service_name, internal_port, project = request.param
     compose = ComposeProject(
-        project=f"test-{service_name}",
+        project=project,
         url=f"http://localhost:{internal_port}",
     )
 
@@ -41,9 +45,13 @@ def component_endpoint(request):
 
 @pytest.fixture(scope="module")
 def component_service(request):
-    """Start a long-running component that has no HTTP endpoint (e.g. a CLI service)."""
-    service_name = request.param
-    compose = ComposeProject(project=f"test-{service_name}")
+    """Start a long-running component that has no HTTP endpoint (e.g. a CLI service).
+
+    Param is a 2-tuple: (service_name, project).
+    Use a shared project name when two fixtures must share a Docker network.
+    """
+    service_name, project = request.param
+    compose = ComposeProject(project=project)
 
     compose.build(service_name, check=True)
     compose.up(service_name, check=True)

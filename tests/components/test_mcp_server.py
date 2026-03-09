@@ -10,6 +10,7 @@ import pytest
 import requests
 
 
+_PROJECT = "test-mcp_server"
 _CUSTOM_MCP_SERVER_PORT = "9080"
 
 
@@ -21,7 +22,7 @@ def custom_mcp_port():
     os.environ.pop("MCP_SERVER_PORT", None)
 
 
-@pytest.mark.parametrize("component_endpoint", [("mcp_server", "8080")], indirect=True)
+@pytest.mark.parametrize("component_endpoint", [("mcp_server", "8080", _PROJECT)], indirect=True)
 class TestMcpServerDefaultPort:
 
     def test_health_endpoint(self, component_endpoint):
@@ -38,7 +39,7 @@ class TestMcpServerDefaultPort:
         response.close()
 
 
-@pytest.mark.parametrize("component_endpoint", [("mcp_server", _CUSTOM_MCP_SERVER_PORT)], indirect=True)
+@pytest.mark.parametrize("component_endpoint", [("mcp_server", _CUSTOM_MCP_SERVER_PORT, _PROJECT)], indirect=True)
 class TestMcpServerCustomPort:
 
     def test_responds_on_custom_port(self, custom_mcp_port, component_endpoint):

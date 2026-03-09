@@ -9,6 +9,7 @@ import pytest
 import requests
 
 
+_PROJECT = "test-vector_db"
 _CUSTOM_VECTOR_DB_HTTP_PORT = "7333"
 _CUSTOM_VECTOR_DB_GRPC_PORT = "7334"
 
@@ -23,7 +24,7 @@ def custom_vector_db_ports():
     os.environ.pop("VECTOR_DB_GRPC_PORT", None)
 
 
-@pytest.mark.parametrize("component_endpoint", [("vector_db", "6333")], indirect=True)
+@pytest.mark.parametrize("component_endpoint", [("vector_db", "6333", _PROJECT)], indirect=True)
 class TestVectorDbDefaultPort:
 
     def test_health_endpoint(self, component_endpoint):
@@ -58,7 +59,7 @@ class TestVectorDbDefaultPort:
         assert response.status_code == 200
 
 
-@pytest.mark.parametrize("component_endpoint", [("vector_db", _CUSTOM_VECTOR_DB_HTTP_PORT)], indirect=True)
+@pytest.mark.parametrize("component_endpoint", [("vector_db", _CUSTOM_VECTOR_DB_HTTP_PORT, _PROJECT)], indirect=True)
 class TestVectorDbCustomPort:
 
     def test_responds_on_custom_http_port(self, custom_vector_db_ports, component_endpoint):
