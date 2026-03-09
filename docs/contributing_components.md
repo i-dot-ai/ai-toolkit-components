@@ -17,19 +17,24 @@ See the [Prerequisites guide](prerequisites.md) for full installation instructio
 
 Ready-to-use starting-point files are provided in `templates/component/`:
 
+**Component templates** — copy these into your new component directory and replace the `COMPONENT_*` placeholders:
+
 | File | Purpose |
 |------|---------|
 | [`templates/component/Dockerfile`](../templates/component/Dockerfile) | Annotated Dockerfile covering the full component pattern |
 | [`templates/component/entrypoint.sh`](../templates/component/entrypoint.sh) | Annotated entrypoint script with the copy-on-first-run loop |
 | [`templates/component/src/requirements.txt`](../templates/component/src/requirements.txt) | Python dependencies — edit in the mounted volume to add packages without rebuilding |
-| [`templates/component/src/registry.py`](../templates/component/src/registry.py) | Generic `PluginRegistry` for auto-discovering extensibility subclasses |
 | [`templates/component/src/plugins/example_plugin.py`](../templates/component/src/plugins/example_plugin.py) | Example startup script (run once by the entrypoint after the service starts) |
 | [`templates/component/src/extensions/base.py`](../templates/component/src/extensions/base.py) | Abstract base class template for extensibility extensions |
 | [`templates/component/src/extensions/__init__.py`](../templates/component/src/extensions/__init__.py) | Wires up the `PluginRegistry` and exposes the public lookup API |
 | [`templates/component/src/config/config.yaml`](../templates/component/src/config/config.yaml) | Starter config file with guidance on what belongs here |
 | [`templates/component/README.md`](../templates/component/README.md) | README template with all required sections |
 
-Copy these into your new component directory and replace the `COMPONENT_*` placeholders with values specific to your component.
+**Shared library** — do not copy these; they are built into every component image automatically via the Dockerfile:
+
+| File | Purpose |
+|------|---------|
+| [`common/registry.py`](../common/registry.py) | Generic `PluginRegistry` for auto-discovering extensibility subclasses |
 
 ## Structure
 
@@ -43,7 +48,6 @@ components/<component_name>/
 └── src/
     ├── <main>.py        # Core application logic
     ├── requirements.txt # Python dependencies (editable at runtime via mounted volume)
-    ├── registry.py      # Plugin registry — include if using extensibility extensions
     ├── config/
     │   └── config.yaml  # Default configuration
     ├── plugins/         # Startup scripts — include if using the startup script pattern
@@ -52,6 +56,8 @@ components/<component_name>/
         ├── __init__.py
         └── base.py
 ```
+
+The shared `common/` directory at the repo root is copied into every component image at `/app/common/` by the Dockerfile. Components do not contain their own copy of these files.
 
 The `Dockerfile`, `entrypoint.sh`, and `src/requirements.txt` are mandatory. Everything else depends on what your component does.
 
@@ -109,7 +115,16 @@ Keep this file to **behavioural** settings (batch sizes, timeouts, model names, 
 
 ### 6. Register in docker-compose.yaml
 
-Add your component to the root `docker-compose.yaml` so it can be built and tested locally. Resource limits (`deploy.resources`) are mandatory — they prevent runaway containers from consuming all available memory or CPU on the host. See the existing component entries for the expected structure.
+Add your component to the root `docker-compose.yaml` so it can be built and tested locally. Set the build context to the repo root (`.`) so the Dockerfile can access `common/`, and point `dockerfile:` at the component's path:
+
+```yaml
+your_component:
+  build:
+    context: .
+    dockerfile: components/your_component/Dockerfile
+```
+
+Resource limits (`deploy.resources`) are mandatory — they prevent runaway containers from consuming all available memory or CPU on the host. See the existing component entries for the expected structure.
 
 ### 7. Write a README
 
@@ -152,11 +167,11 @@ Used by `data_ingestor` (parsers, embedders) and `mcp_server` (tools, backends).
 This is suited to **adding new capabilities at runtime** — new content parsers, database backends, API tools — without modifying the image.
 
 To use this pattern:
-1. Copy `templates/component/src/registry.py` and `templates/component/src/extensions/` into your component
+1. Copy `templates/component/src/extensions/` into your component
 2. Rename the `extensions/` directory and the `BaseExtension` class to reflect your domain (e.g. `parsers/BaseParser`, `backends/BaseBackend`)
 3. In `base.py`, rename the `extension_type` property and add the abstract methods your interface requires
 4. In `__init__.py`, update the `PluginRegistry(...)` arguments to match (see the TODO comments)
-5. In the Dockerfile, copy the directory to `/app/defaults/<your_dir>/` and copy `registry.py` to `/app/`
+5. In the Dockerfile, copy the directory to `/app/defaults/<your_dir>/` — `registry.py` is already provided by `common/` and does not need to be copied
 6. In the entrypoint, add the directory name to `SUBDIRS`
 
 See `components/data_ingestor/src/parsers/` for a complete example.
