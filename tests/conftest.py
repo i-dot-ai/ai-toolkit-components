@@ -1,9 +1,16 @@
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+# Make shared modules (e.g. registry) importable in unit tests,
+# mirroring the PYTHONPATH set in each component's Dockerfile.
+_common = str(Path(__file__).resolve().parents[1] / "common")
+if _common not in sys.path:
+    sys.path.insert(0, _common)
 
 from tests.test_utils import ComposeProject
 
