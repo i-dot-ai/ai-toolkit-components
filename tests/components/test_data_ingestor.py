@@ -39,14 +39,12 @@ class TestDataIngestorContainer:
         """Run the data_ingestor via exec against the running container.
 
         Uses the compose network so data_ingestor can reach vector_db
-        by service name.
+        by service name.  VECTOR_DB_HOST and VECTOR_DB_PORT are already set
+        correctly in the container by docker-compose, so we do not override them.
         """
-        env = {
-            "VECTOR_DB_HOST": "vector_db",
-            "VECTOR_DB_PORT": VECTOR_DB_PORT,
-            **(env_extra or {}),
-        }
-        return component_service.exec(INGESTOR_SERVICE, "run", *args, env=env, timeout=timeout)
+        return component_service.exec(
+            INGESTOR_SERVICE, "run", *args, env=env_extra or {}, timeout=timeout
+        )
 
     def test_help(self, component_endpoint, component_service):
         """Container starts and prints help text."""

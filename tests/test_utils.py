@@ -1,3 +1,5 @@
+import os
+import socket
 import subprocess
 import time
 from pathlib import Path
@@ -5,6 +7,13 @@ from pathlib import Path
 import docker
 
 client = docker.from_env()
+
+
+def _find_free_port() -> int:
+    """Find an available TCP port on localhost."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
 
 
 class ComposeProject:
@@ -16,6 +25,10 @@ class ComposeProject:
 
     For component fixtures, `url` holds the HTTP base URL.
     For application fixtures, path-like access (via /) is relative to `app_dir`.
+
+    `compose_env` provides extra environment variables substituted by docker compose
+    (e.g. port overrides).  They are merged with the current process environment so
+    the docker binary itself is still on PATH.
     """
 
     def __init__(
@@ -24,16 +37,21 @@ class ComposeProject:
         compose_file: Path | None = None,
         app_dir: Path | None = None,
         url: str | None = None,
+        compose_env: dict | None = None,
     ):
         self.project = project
         self.app_dir = app_dir
         self.url = url
+        self._compose_env = compose_env or {}
         self._base_cmd = ["docker", "compose", "--project-name", project]
         if compose_file:
             self._base_cmd += ["-f", str(compose_file)]
 
     def _run(self, *args, **kwargs) -> subprocess.CompletedProcess:
         kwargs.setdefault("cwd", self.app_dir)
+        if self._compose_env:
+            base_env = kwargs.pop("env", os.environ)
+            kwargs["env"] = {**base_env, **self._compose_env}
         return subprocess.run([*self._base_cmd, *args], **kwargs)
 
     def build(self, *services, **kwargs) -> subprocess.CompletedProcess:

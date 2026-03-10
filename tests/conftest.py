@@ -13,11 +13,23 @@ _common = str(Path(__file__).resolve().parents[1] / "common")
 if _common not in sys.path:
     sys.path.insert(0, _common)
 
-from tests.test_utils import ComposeProject
+from tests.test_utils import ComposeProject, _find_free_port
 
 # Unique suffix appended to every project name so concurrent test runs never
 # collide, while fixtures that share a base project name still share a network.
 _SESSION_SUFFIX = uuid.uuid4().hex[:6]
+
+# Port env vars to override per service so tests never conflict with a running
+# dev stack.  All listed vars use a free host port; the first is the primary
+# HTTP port used to build the URL.
+_SERVICE_PORT_ENVS: dict[str, list[str]] = {
+    "vector_db": ["VECTOR_DB_HTTP_PORT", "VECTOR_DB_GRPC_PORT"],
+    "mcp_server": ["MCP_SERVER_PORT"],
+}
+
+# Shared compose_env per unique project name so component_endpoint and
+# component_service fixtures that target the same project agree on ports.
+_project_compose_envs: dict[str, dict] = {}
 
 
 @pytest.fixture(scope="module")
@@ -28,9 +40,20 @@ def component_endpoint(request):
     Use a shared project name when two fixtures must share a Docker network.
     """
     service_name, internal_port, project = request.param
+    unique_project = f"{project}-{_SESSION_SUFFIX}"
+
+    # Assign free ports to all port env vars for this service so the test
+    # containers do not clash with a running dev stack.
+    port_envs = _SERVICE_PORT_ENVS.get(service_name, [])
+    compose_env = {env_var: str(_find_free_port()) for env_var in port_envs}
+    _project_compose_envs[unique_project] = compose_env
+
+    # The first free port (primary HTTP port) is used for the URL.
+    url_port = compose_env[port_envs[0]] if port_envs else internal_port
     compose = ComposeProject(
-        project=f"{project}-{_SESSION_SUFFIX}",
-        url=f"http://localhost:{internal_port}",
+        project=unique_project,
+        url=f"http://localhost:{url_port}",
+        compose_env=compose_env,
     )
 
     compose.build(service_name, check=True)
@@ -61,10 +84,15 @@ def component_service(request):
     Use a shared project name when two fixtures must share a Docker network.
     """
     service_name, project = request.param
-    compose = ComposeProject(project=f"{project}-{_SESSION_SUFFIX}")
+    unique_project = f"{project}-{_SESSION_SUFFIX}"
+
+    # Reuse any compose_env already established for this project (e.g. port
+    # overrides set by a co-running component_endpoint fixture).
+    compose_env = _project_compose_envs.get(unique_project, {})
+    compose = ComposeProject(project=unique_project, compose_env=compose_env)
 
     compose.build(service_name, check=True)
-    result = compose.up(service_name, capture_output=True, text=True)
+    result = compose.up(service_name, "--no-deps", capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(
             f"docker compose up {service_name} failed (rc={result.returncode}):\n"

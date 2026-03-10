@@ -35,13 +35,10 @@ class TestVectorQueryContainer:
         """Run the vector_query via exec against the running container.
 
         Both services share a project network, so vector_db is reachable
-        by its service name.
+        by its service name.  VECTOR_DB_HOST and VECTOR_DB_PORT are already set
+        correctly in the container by docker-compose, so we do not override them.
         """
-        return component_service.exec(
-            QUERY_SERVICE, "run", *args,
-            env={"VECTOR_DB_HOST": "vector_db", "VECTOR_DB_PORT": VECTOR_DB_PORT},
-            timeout=timeout,
-        )
+        return component_service.exec(QUERY_SERVICE, "run", *args, timeout=timeout)
 
     def test_help(self, component_endpoint, component_service):
         """Container starts and prints help text with subcommands."""
