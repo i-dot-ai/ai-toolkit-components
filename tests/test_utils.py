@@ -1,6 +1,7 @@
 import subprocess
 import time
 from pathlib import Path
+import pdb
 
 import docker
 
@@ -109,6 +110,7 @@ class ComposeProject:
         """Wait until a service container is in running state."""
         start = time.time()
         while True:
+            pdb.set_trace()
             container = self._get_container(service)
             if container is not None:
                 container.reload()
