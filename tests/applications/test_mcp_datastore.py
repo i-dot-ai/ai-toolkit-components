@@ -1,7 +1,5 @@
 import pytest
 
-from tests.test_utils import get_application_services
-
 
 APP_NAME = "mcp_datastore"
 

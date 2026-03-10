@@ -3,75 +3,8 @@ import time
 from pathlib import Path
 
 import docker
-import yaml
 
 client = docker.from_env()
-
-
-def _find_container(service_name, project=None):
-    """Find a Docker container by service name, optionally scoped to a Compose project."""
-    if project is not None:
-        containers = client.containers.list(filters={
-            "label": [
-                f"com.docker.compose.project={project}",
-                f"com.docker.compose.service={service_name}",
-            ]
-        })
-        return containers[0] if containers else None
-    return next((c for c in client.containers.list() if service_name in c.name), None)
-
-
-def wait_for_service(service_name, timeout=60, project=None):
-    """Wait until a Docker container is in running state."""
-    start = time.time()
-    while True:
-        try:
-            container = _find_container(service_name, project=project)
-            if container is not None and container.status == 'running':
-                return True
-        except Exception:
-            pass
-
-        if time.time() - start > timeout:
-            raise TimeoutError(f"Container {service_name} did not start within {timeout} seconds")
-
-        time.sleep(1)
-
-
-def container_is_running(service_name, project=None):
-    """Check if a Docker container is running."""
-    return _find_container(service_name, project=project) is not None
-
-
-def verify_service_health(service_name, timeout=180, project=None):
-    """Verify the health of a service container."""
-    start = time.time()
-    while True:
-        container = _find_container(service_name, project=project)
-        if container is None:
-            raise ValueError(f"No running container found for service {service_name}")
-        if 'Health' not in container.attrs['State']:
-            raise ValueError(f"Container for service {service_name} does not have health status")
-
-        health_status = container.attrs['State']['Health']['Status']
-        if health_status == 'healthy':
-            return True
-        if time.time() - start > timeout:
-            raise TimeoutError(f"Service {service_name} did not become healthy within {timeout} seconds")
-
-        time.sleep(1)
-
-
-def get_application_services(app_name):
-    """Get the list of services defined in an application's docker-compose file."""
-    compose_file = f"applications/{app_name}/docker-compose.yaml"
-    try:
-        with open(compose_file) as f:
-            services = yaml.safe_load(f)['services'].keys()
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Docker compose file for application {app_name} not found at {compose_file}")
-
-    return services
 
 
 class ComposeProject:
@@ -146,13 +79,44 @@ class ComposeProject:
         result = self._run("logs", service, capture_output=True, text=True)
         return result.stdout + result.stderr
 
+    def _get_container(self, service: str):
+        """Return the Docker container for a service by matching its Compose name prefix.
+
+        Docker Compose names containers as {project}-{service}-{n}. We match by prefix
+        so that any replica index is accepted.
+        """
+        prefix = f"{self.project}-{service}-"
+        containers = [c for c in client.containers.list(all=True) if c.name.startswith(prefix)]
+        return containers[0] if containers else None
+
     def verify_health(self, service: str, timeout: int = 180) -> bool:
         """Wait for a service container's health check to pass."""
-        return verify_service_health(service, timeout=timeout, project=self.project)
+        start = time.time()
+        while True:
+            container = self._get_container(service)
+            if container is None:
+                raise ValueError(f"No container found for service {service}")
+            container.reload()
+            if 'Health' not in container.attrs['State']:
+                raise ValueError(f"Container for service {service} does not have health status")
+            if container.attrs['State']['Health']['Status'] == 'healthy':
+                return True
+            if time.time() - start > timeout:
+                raise TimeoutError(f"Service {service} did not become healthy within {timeout} seconds")
+            time.sleep(1)
 
     def wait_for(self, service: str, timeout: int = 60) -> None:
         """Wait until a service container is in running state."""
-        wait_for_service(service, timeout=timeout, project=self.project)
+        start = time.time()
+        while True:
+            container = self._get_container(service)
+            if container is not None:
+                container.reload()
+                if container.status == 'running':
+                    return
+            if time.time() - start > timeout:
+                raise TimeoutError(f"Container {service} did not start within {timeout} seconds")
+            time.sleep(1)
 
     def __truediv__(self, other):
         """Allow path-like operations relative to app_dir (e.g. compose / 'code' / 'parsers')."""

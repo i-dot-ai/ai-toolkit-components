@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,10 @@ if _common not in sys.path:
 
 from tests.test_utils import ComposeProject
 
+# Unique suffix appended to every project name so concurrent test runs never
+# collide, while fixtures that share a base project name still share a network.
+_SESSION_SUFFIX = uuid.uuid4().hex[:6]
+
 
 @pytest.fixture(scope="module")
 def component_endpoint(request):
@@ -24,7 +29,7 @@ def component_endpoint(request):
     """
     service_name, internal_port, project = request.param
     compose = ComposeProject(
-        project=project,
+        project=f"{project}-{_SESSION_SUFFIX}",
         url=f"http://localhost:{internal_port}",
     )
 
@@ -51,7 +56,7 @@ def component_service(request):
     Use a shared project name when two fixtures must share a Docker network.
     """
     service_name, project = request.param
-    compose = ComposeProject(project=project)
+    compose = ComposeProject(project=f"{project}-{_SESSION_SUFFIX}")
 
     compose.build(service_name, check=True)
     compose.up(service_name)
@@ -74,7 +79,7 @@ def application_endpoint(request, tmp_path_factory):
     compose_file = app_dir / "docker-compose.yaml"
 
     compose = ComposeProject(
-        project=f"test-{app_name}",
+        project=f"test-{app_name}-{_SESSION_SUFFIX}",
         compose_file=compose_file,
         app_dir=app_dir,
     )
