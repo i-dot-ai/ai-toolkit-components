@@ -1,9 +1,10 @@
 name: Test Applications
 
 on:
-    push:
-        branches:
-        - main
+    workflow_run:
+        workflows: ["Publish Latest Images"]
+        types: [completed]
+        branches: [main]
     pull_request:
     workflow_dispatch:
 
@@ -11,14 +12,11 @@ jobs:
   wait-for-components:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for publish to succeed
-        if: github.event_name == 'push'
-        uses: lewagon/wait-on-check-action@v1.3.4
-        with:
-          ref: ${{ github.sha }}
-          check-regexp: '^publish$'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
+      - name: Fail if publish did not succeed
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+        run: |
+          echo "Publish workflow did not succeed (conclusion: ${{ github.event.workflow_run.conclusion }}), skipping application tests."
+          exit 1
 
       - name: Wait for component build and test to succeed
         if: github.event_name == 'pull_request'
