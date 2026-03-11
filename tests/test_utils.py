@@ -35,7 +35,13 @@ def build_application_images(compose_config: dict) -> None:
     the root docker-compose.yaml and retags it with the application's expected
     image name so ``docker compose up`` uses the freshly-built image rather than
     pulling a potentially stale image from the registry.
+
+    Skipped when ``APPS_USE_REGISTRY_IMAGES`` is set in the environment, so that
+    CI runs on main can validate the published registry images end-to-end.
     """
+    if os.environ.get("APPS_USE_REGISTRY_IMAGES"):
+        return
+
     for service in compose_config.get("services", {}).values():
         image = service.get("image")
         if not image:
