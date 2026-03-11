@@ -6,7 +6,52 @@ from pathlib import Path
 
 import docker
 
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
 client = docker.from_env()
+
+
+def _find_component_for_image(image: str) -> str | None:
+    """Map a container image name to a local component directory, if one exists.
+
+    Strips the registry/org prefix and tag, then tries progressively dropping
+    leading dash-separated segments until a match in ``components/`` is found.
+
+    Example: ``ghcr.io/org/ai-toolkit-vector-db:latest`` → ``vector_db``
+    """
+    basename = image.split("/")[-1].split(":")[0]  # e.g. "ai-toolkit-vector-db"
+    parts = basename.split("-")
+    for i in range(len(parts)):
+        candidate = "_".join(parts[i:])
+        if (_REPO_ROOT / "components" / candidate).is_dir():
+            return candidate
+    return None
+
+
+def build_application_images(compose_config: dict) -> None:
+    """Build component images referenced by an application compose file locally.
+
+    For each service image that maps to a local component, builds the image via
+    the root docker-compose.yaml and retags it with the application's expected
+    image name so ``docker compose up`` uses the freshly-built image rather than
+    pulling a potentially stale image from the registry.
+    """
+    for service in compose_config.get("services", {}).values():
+        image = service.get("image")
+        if not image:
+            continue
+        component = _find_component_for_image(image)
+        if component is None:
+            continue
+        subprocess.run(
+            ["docker", "compose", "build", component],
+            cwd=_REPO_ROOT,
+            check=True,
+        )
+        subprocess.run(
+            ["docker", "tag", f"{component}:latest", image],
+            check=True,
+        )
 
 
 def find_free_port() -> int:
