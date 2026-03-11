@@ -60,11 +60,12 @@ class TestVectorQueryContainer:
     def test_add_and_get(self, component_endpoint, component_service):
         """add stores a document; get retrieves it."""
         collection = "test-vq-add-get"
-        text = "the quick brown fox jumps over the lazy dog"
+        content = "the quick brown fox jumps over the lazy dog"
 
         add_result = self.run_query(
             component_service,
-            "add", "--collection", collection, "--text", text,
+            "add", "--collection", collection, "--content", content,
+            "--source", f"test://{collection}/doc1",
             timeout=180,
         )
         assert add_result.returncode == 0
@@ -72,16 +73,17 @@ class TestVectorQueryContainer:
 
         get_result = self.run_query(component_service, "get", "--collection", collection)
         assert get_result.returncode == 0
-        assert text in get_result.stdout
+        assert content in get_result.stdout
 
     def test_search(self, component_endpoint, component_service):
         """search returns results with scores after a document is added."""
         collection = "test-vq-search"
-        text = "vector databases store high-dimensional embeddings"
+        content = "vector databases store high-dimensional embeddings"
 
         add_result = self.run_query(
             component_service,
-            "add", "--collection", collection, "--text", text,
+            "add", "--collection", collection, "--content", content,
+            "--source", f"test://{collection}/doc1",
             timeout=180,
         )
         assert add_result.returncode == 0
@@ -100,7 +102,8 @@ class TestVectorQueryContainer:
 
         self.run_query(
             component_service,
-            "add", "--collection", collection, "--text", "temporary document",
+            "add", "--collection", collection, "--content", "temporary document",
+            "--source", f"test://{collection}/doc1",
             timeout=180,
         )
 

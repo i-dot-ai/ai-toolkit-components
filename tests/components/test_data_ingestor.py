@@ -132,9 +132,9 @@ class TestDataIngestorContainer:
 
         payload = points[0]["payload"]
         assert payload["source"] == "http://httpbin.org/html"
-        assert payload["source_type"] == "html"
-        assert payload["title"]
         assert payload["content"]
+        assert payload["metadata"]["source_type"] == "html"
+        assert payload["metadata"]["timestamp"]
 
     def test_ingest_bad_url_exits_cleanly(self, component_endpoint, component_service):
         """Ingestor should handle unreachable URLs gracefully."""
