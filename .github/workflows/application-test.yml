@@ -67,6 +67,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Test application
+        env:
+          APPS_USE_REGISTRY_IMAGES: ${{ github.ref == 'refs/heads/main' && 'true' || '' }}
         run: |
           mkdir -p results
           ./run_tests.sh application ${{ matrix.application }} -- \
