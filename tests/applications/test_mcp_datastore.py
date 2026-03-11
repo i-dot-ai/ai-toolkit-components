@@ -35,16 +35,16 @@ class TestParser(BaseParser):
             logger.error(f"TestParser failed to read {source}: {e}")
             return None
 
-    def parse(self, content: str, source: str) -> ParsedDocument:
+    def parse(self, content: str, source: str) -> list[ParsedDocument]:
         logger.info(f"TestParser parsing: {source}")
-        return ParsedDocument(
+        return [ParsedDocument(
             source=source,
             title="Test Document",
             content=content,
             metadata={"parser": "test"},
             timestamp=self._current_timestamp(),
             source_type=self.source_type,
-        )
+        )]
 '''
 
 
