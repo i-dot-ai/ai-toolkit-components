@@ -103,6 +103,7 @@ The following components are available:
 | [vector_db](components/vector_db/) | Qdrant vector database with plugin support |
 | [data_ingestor](components/data_ingestor/) | Content ingestion and embedding |
 | [mcp_server](components/mcp_server/) | MCP server exposing vector DB tools for AI agents |
+| [vector_query](components/vector_query/) | CLI for querying and managing vector databases directly |
 
 To use a component directly, reference its published image in your own `docker-compose.yaml` and mount a local directory to `/app/custom`:
 

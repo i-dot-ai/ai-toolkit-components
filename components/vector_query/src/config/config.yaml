@@ -1,0 +1,10 @@
+# Vector Query Configuration
+#
+# Behavioural settings are configured here.
+# Connection settings (VECTOR_DB_HOST, VECTOR_DB_PORT) should be set via environment variables.
+
+backend: qdrant
+
+backend_settings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  batch_size: 32
