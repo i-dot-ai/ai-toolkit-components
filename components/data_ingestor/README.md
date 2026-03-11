@@ -39,8 +39,8 @@ docker compose exec data_ingestor run \
   https://example.com \
   https://example.com/page2
 
-# Ingest from a file (copy the file in first, then run)
-docker compose cp urls.txt data_ingestor:/input/urls.txt
+# Ingest from a file (copy the file in bind mounted location first, then run)
+cp urls.txt input/urls.txt
 docker compose exec data_ingestor run -f /input/urls.txt
 
 # Specify collection name
