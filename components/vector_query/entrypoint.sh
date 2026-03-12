@@ -32,4 +32,6 @@ if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
 fi
 pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
 
-exec python -u /app/query.py "$@"
+echo "Vector query ready. Use 'docker compose exec vector_query vector_query <args>' to run."
+
+exec sleep infinity

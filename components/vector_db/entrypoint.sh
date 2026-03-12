@@ -30,23 +30,7 @@ done
 CONFIG_FILE="$CUSTOM_DIR/config/config.yaml"
 if [ -f "$CONFIG_FILE" ]; then
     echo "Loading config from $CONFIG_FILE..."
-    eval "$(python3 -c "
-import yaml
-def to_env_value(v):
-    if isinstance(v, bool):
-        return 'true' if v else 'false'
-    return str(v)
-with open('$CONFIG_FILE') as f:
-    config = yaml.safe_load(f) or {}
-for key, value in config.items():
-    if isinstance(value, dict):
-        for sub_key, sub_value in value.items():
-            env_name = f'QDRANT__{key}__{sub_key}'.upper()
-            print(f'export {env_name}=\"{to_env_value(sub_value)}\"')
-    else:
-        env_name = f'QDRANT__{key}'.upper()
-        print(f'export {env_name}=\"{to_env_value(value)}\"')
-")"
+    eval "$(python3 /app/load_config.py "$CONFIG_FILE")"
     echo "Config loaded."
 else
     echo "No config file found at $CONFIG_FILE, using defaults."
@@ -83,8 +67,10 @@ echo "Qdrant is up!"
 if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
     echo "Copying default: requirements.txt"
     cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
+else
+    echo "Requirements updated so installing packages..."
+    pip install --quiet --no-cache-dir -r "$CUSTOM_DIR/requirements.txt"
 fi
-pip install --quiet --break-system-packages -r "$CUSTOM_DIR/requirements.txt"
 
 # Run all Python plugins in the custom plugins directory
 if ls "$CUSTOM_DIR/plugins/"*.py >/dev/null 2>&1; then
@@ -92,13 +78,16 @@ if ls "$CUSTOM_DIR/plugins/"*.py >/dev/null 2>&1; then
     for plugin in "$CUSTOM_DIR/plugins/"*.py; do
         [ -e "$plugin" ] || continue
         echo "Running plugin: $(basename "$plugin")"
-        python3 "$plugin"
+        python3 "$plugin" || echo "Warning: plugin $(basename "$plugin") failed, continuing..."
     done
 else
     echo "No Python plugins found"
 fi
 
 echo "Setup complete. Keeping process alive..."
+
+# Forward SIGTERM/SIGINT to Qdrant so it shuts down cleanly on docker stop
+trap 'kill -SIGTERM $QDRANT_PID' SIGTERM SIGINT
 
 # Bring the background process to the foreground
 wait $QDRANT_PID

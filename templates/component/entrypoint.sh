@@ -68,9 +68,11 @@ echo "Starting ${COMPONENT_MAIN}..."
 # ----------------------------------------------------------------------------
 # TODO: Choose one of the two exec lines below and delete the other.
 #
-# For a persistent service, signals (SIGTERM etc.) are forwarded correctly:
+# For a persistent service (HTTP server etc.), signals are forwarded correctly:
 exec python -u /app/${COMPONENT_MAIN}
 #
-# For a run-once task, CLI arguments from `docker compose run` are passed through:
-# exec python -u /app/${COMPONENT_MAIN} "$@"
+# For a CLI component invoked via exec, keep the container alive.
+# Users run commands with: docker compose exec COMPONENT_NAME run <args>
+# Add a 'run' wrapper script in the Dockerfile (see template) so that works.
+# exec sleep infinity
 # ----------------------------------------------------------------------------

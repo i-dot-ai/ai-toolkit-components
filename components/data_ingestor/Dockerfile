@@ -10,25 +10,35 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-COPY src/requirements.txt /app/defaults/requirements.txt
+COPY components/data_ingestor/src/requirements.txt /app/defaults/requirements.txt
 RUN pip install --no-cache-dir -r /app/defaults/requirements.txt
 
 # Copy entrypoint
-COPY entrypoint.sh /app/entrypoint.sh
+COPY components/data_ingestor/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Copy application source
-COPY src/ingestor.py src/registry.py /app/
+COPY components/data_ingestor/src/ingestor.py /app/
+
+# Copy shared library
+COPY common/ /app/common/
 
 # Copy customizable defaults (will be copied to /app/custom on startup if not present)
-COPY src/config/ /app/defaults/config/
-COPY src/parsers/ /app/defaults/parsers/
-COPY src/embedders/ /app/defaults/embedders/
+COPY components/data_ingestor/src/config/ /app/defaults/config/
+COPY components/data_ingestor/src/parsers/ /app/defaults/parsers/
+COPY components/data_ingestor/src/embedders/ /app/defaults/embedders/
 
 # Create custom directory (single mount point for user customization)
 RUN mkdir -p /app/custom
 
+# Default connection settings (can be overridden via VECTOR_DB_HOST / VECTOR_DB_PORT env vars)
+ENV VECTOR_DB_HOST=localhost VECTOR_DB_PORT=6333
+
 # Set PYTHONPATH so custom parsers/embedders take precedence
-ENV PYTHONPATH="/app/custom:/app"
+ENV PYTHONPATH="/app/custom:/app/common:/app"
+
+# 'run' wrapper so exec commands follow a consistent pattern across components
+RUN printf '#!/bin/sh\nexec python /app/ingestor.py "$@"\n' > /usr/local/bin/run && \
+    chmod +x /usr/local/bin/run
 
 ENTRYPOINT ["/app/entrypoint.sh"]

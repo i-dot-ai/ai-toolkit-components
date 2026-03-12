@@ -97,7 +97,9 @@ class MCPServer:
 
         @self.mcp.custom_route("/health", methods=["GET"])
         async def health(request: Request) -> JSONResponse:
-            return JSONResponse({"status": "ok"})
+            if self.backend.is_healthy():
+                return JSONResponse({"status": "ok"})
+            return JSONResponse({"status": "unavailable"}, status_code=503)
 
     def _register_tools(self) -> None:
         """Register discovered tools as MCP tools."""
