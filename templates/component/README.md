@@ -15,7 +15,9 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 ## Usage
 
 <!-- TODO: Show how to include this component in a docker-compose.yaml.
-     Replace COMPONENT_NAME, HOST_PORT, and CONTAINER_PORT. -->
+     Replace COMPONENT_NAME, HOST_PORT, CONTAINER_PORT, and the kebab-case image name. -->
+
+### Using the Published Image
 
 ```yaml
 services:
@@ -38,6 +40,42 @@ services:
         reservations:
           memory: 1G
           cpus: "0.5"
+```
+
+```bash
+docker compose up -d COMPONENT_NAME
+```
+
+### Building from Source
+
+```yaml
+services:
+  COMPONENT_NAME:
+    build:
+      context: .
+      dockerfile: components/COMPONENT_NAME/Dockerfile
+    container_name: COMPONENT_NAME
+    restart: unless-stopped
+    volumes:
+      - ./code/COMPONENT_NAME:/app/custom
+    ports:
+      - "HOST_PORT:CONTAINER_PORT"  # TODO: remove if this component exposes no ports
+    # TODO: add environment variables your component needs, e.g.:
+    # environment:
+    #   - SOME_HOST=other_service
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+          cpus: "0.5"
+```
+
+```bash
+docker compose build COMPONENT_NAME
+docker compose up -d COMPONENT_NAME
 ```
 
 <!-- TODO: Add usage instructions specific to your component.
