@@ -21,7 +21,66 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Usage
 
-`vector_query` is designed to run alongside a vector database via docker compose. Start the stack with `docker compose up -d`, then use `docker compose exec` to run query commands against the running container.
+`vector_query` is designed to run alongside a vector database via docker compose.
+
+### Using the Published Image
+
+```yaml
+services:
+  vector_db:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  vector_query:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-query:latest
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./code/vector_query:/app/custom
+```
+
+```bash
+docker compose up -d
+```
+
+### Building from Source
+
+```yaml
+services:
+  vector_db:
+    build:
+      context: .
+      dockerfile: components/vector_db/Dockerfile
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  vector_query:
+    build:
+      context: .
+      dockerfile: components/vector_query/Dockerfile
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./code/vector_query:/app/custom
+```
+
+```bash
+docker compose build
+docker compose up -d
+```
 
 ```bash
 # List all collections
@@ -44,25 +103,6 @@ docker compose exec vector_query run get --collection documents
 
 # Delete a collection
 docker compose exec vector_query run delete --collection documents
-```
-
-### Docker Compose
-
-```yaml
-services:
-  vector_db:
-    image: vector_db:latest
-    ports:
-      - "6333:6333"
-
-  vector_query:
-    image: vector_query:latest
-    depends_on:
-      - vector_db
-    environment:
-      - VECTOR_DB_HOST=vector_db
-    volumes:
-      - ./code/vector_query:/app/custom
 ```
 
 ## CLI Reference

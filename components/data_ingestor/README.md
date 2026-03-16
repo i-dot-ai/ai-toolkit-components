@@ -28,7 +28,66 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Usage
 
-The data ingestor is designed to run alongside a vector database via docker compose. Start the stack with `docker compose up -d`, then use `docker compose exec` to run ingestion commands against the running container.
+The data ingestor is designed to run alongside a vector database via docker compose.
+
+### Using the Published Image
+
+```yaml
+services:
+  vector_db:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  data_ingestor:
+    image: ghcr.io/i-dot-ai/ai-toolkit-data-ingestor:latest
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./data/data_ingestor:/app/custom
+```
+
+```bash
+docker compose up -d
+```
+
+### Building from Source
+
+```yaml
+services:
+  vector_db:
+    build:
+      context: .
+      dockerfile: components/vector_db/Dockerfile
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  data_ingestor:
+    build:
+      context: .
+      dockerfile: components/data_ingestor/Dockerfile
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./data/data_ingestor:/app/custom
+```
+
+```bash
+docker compose build
+docker compose up -d
+```
 
 ```bash
 # Ingest a single URL
@@ -47,25 +106,6 @@ docker compose exec data_ingestor run -f /input/urls.txt
 docker compose exec data_ingestor run \
   -c my_collection \
   https://example.com
-```
-
-### Docker Compose
-
-```yaml
-services:
-  vector_db:
-    image: vector_db:latest
-    ports:
-      - "6333:6333"
-
-  data_ingestor:
-    image: data_ingestor:latest
-    depends_on:
-      - vector_db
-    environment:
-      - VECTOR_DB_HOST=vector_db
-    volumes:
-      - ./data/data_ingestor:/app/custom
 ```
 
 ## CLI Options
