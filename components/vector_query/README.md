@@ -23,7 +23,9 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 `vector_query` is designed to run alongside a vector database via docker compose.
 
-### Using the Published Image
+### Starting the Published Image
+
+To run the service using the published docker image, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -46,11 +48,23 @@ services:
       - ./code/vector_query:/app/custom
 ```
 
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be run via:
+
 ```bash
 docker compose up -d
 ```
 
+Or to run just the `vector_query`:
+
+```bash
+docker compose up -d vector_query
+```
+
 ### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -77,10 +91,23 @@ services:
       - ./code/vector_query:/app/custom
 ```
 
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be built and run via:
+
 ```bash
 docker compose build
 docker compose up -d
 ```
+
+Or to build and run just the `vector_query`:
+
+```bash
+docker compose build vector_query
+docker compose up -d vector_query
+```
+
+### Querying the data
 
 ```bash
 # List all collections

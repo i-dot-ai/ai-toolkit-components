@@ -36,6 +36,8 @@ The MCP server is designed to run alongside a vector database via docker compose
 
 ### Using the Published Image
 
+To run the service using the published docker image, add the below snippet to your docker compose file:
+
 ```yaml
 services:
   vector_db:
@@ -61,11 +63,23 @@ services:
       - ./data/mcp_server:/app/custom
 ```
 
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be run via:
+
 ```bash
 docker compose up -d vector_db mcp_server
 ```
 
+Or to run just the `mcp_server`:
+
+```bash
+docker compose up -d mcp_server
+```
+
 ### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -96,9 +110,20 @@ services:
       - ./data/mcp_server:/app/custom
 ```
 
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be built and run via:
+
 ```bash
 docker compose build vector_db mcp_server
 docker compose up -d vector_db mcp_server
+```
+
+Or to build and run just the `mcp_server`:
+
+```bash
+docker compose build mcp_server
+docker compose up -d mcp_server
 ```
 
 ```bash

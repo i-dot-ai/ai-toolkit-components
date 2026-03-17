@@ -30,7 +30,9 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 The data ingestor is designed to run alongside a vector database via docker compose.
 
-### Using the Published Image
+### Starting the Published Image
+
+To run the service using the published docker image, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -53,11 +55,21 @@ services:
       - ./data/data_ingestor:/app/custom
 ```
 
+Note that this includes the `vector_db` component - if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be run via:
+
 ```bash
 docker compose up -d
 ```
+Or to run just the `data_ingestor`:
+```bash
+docker compose up -d data_ingestor
+```
 
 ### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -84,10 +96,23 @@ services:
       - ./data/data_ingestor:/app/custom
 ```
 
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be built and run via:
+
 ```bash
 docker compose build
 docker compose up -d
 ```
+
+Or to build and run just the `data_ingestor`:
+
+```bash
+docker compose build data_ingestor
+docker compose up -d data_ingestor
+```
+
+### Ingesting Data
 
 ```bash
 # Ingest a single URL

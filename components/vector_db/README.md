@@ -25,6 +25,8 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ### Using the Published Image
 
+To run the service using the published docker image, add the below snippet to your docker compose file:
+
 ```yaml
 services:
   vector_db:
@@ -40,11 +42,15 @@ services:
       - ./data/vector_db:/app/custom
 ```
 
+Then start the service:
+
 ```bash
 docker compose up -d vector_db
 ```
 
 ### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
 
 ```yaml
 services:
@@ -62,6 +68,8 @@ services:
     volumes:
       - ./data/vector_db:/app/custom
 ```
+
+Then build and start the service:
 
 ```bash
 docker compose build vector_db
