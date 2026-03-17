@@ -1,0 +1,31 @@
+# Compose override for building custom images with user code baked in.
+#
+# Usage:
+#   Build:  docker compose -f docker-compose.yaml -f docker-compose.build.yaml build
+#   Run:    docker compose -f docker-compose.yaml -f docker-compose.build.yaml up -d
+#   Push:   docker compose -f docker-compose.yaml -f docker-compose.build.yaml push
+#
+# Set IMAGE_REGISTRY and IMAGE_TAG to control where images are pushed, e.g.:
+#   IMAGE_REGISTRY=123456789.dkr.ecr.eu-west-2.amazonaws.com/my-project
+#   IMAGE_TAG=1.0.0
+
+services:
+  vector_db:
+    build:
+      context: ./code/vector_db
+    image: ${IMAGE_REGISTRY:-mcp-datastore}/vector-db:${IMAGE_TAG:-latest}
+
+  data_ingestor:
+    build:
+      context: ./code/data_ingestor
+    image: ${IMAGE_REGISTRY:-mcp-datastore}/data-ingestor:${IMAGE_TAG:-latest}
+
+  mcp_server:
+    build:
+      context: ./code/mcp_server
+    image: ${IMAGE_REGISTRY:-mcp-datastore}/mcp-server:${IMAGE_TAG:-latest}
+
+  vector_query:
+    build:
+      context: ./code/vector_query
+    image: ${IMAGE_REGISTRY:-mcp-datastore}/vector-query:${IMAGE_TAG:-latest}

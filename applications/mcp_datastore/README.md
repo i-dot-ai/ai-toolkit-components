@@ -137,6 +137,25 @@ enabled_tools:
   - get_documents
 ```
 
+### Build Custom Images
+
+Each component in `code/` has a `Dockerfile` that bakes your customisations into a new image, suitable for cloud deployments where volume mounts are not available (e.g. ECS, Kubernetes).
+
+```bash
+# Build all three images
+docker compose -f docker-compose.yaml -f docker-compose.build.yaml build
+
+# Build and run locally
+docker compose -f docker-compose.yaml -f docker-compose.build.yaml up -d
+
+# Push to a registry (e.g. ECR)
+IMAGE_REGISTRY=123456789.dkr.ecr.eu-west-2.amazonaws.com/my-project \
+IMAGE_TAG=1.0.0 \
+docker compose -f docker-compose.yaml -f docker-compose.build.yaml push
+```
+
+If your custom code requires additional Python packages, uncomment and edit the `requirements.txt` lines in the relevant `Dockerfile`.
+
 ### Stop the Application
 
 ```bash
