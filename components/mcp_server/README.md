@@ -34,33 +34,101 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 The MCP server is designed to run alongside a vector database via docker compose.
 
-```bash
-# Build and start
-docker compose up -d vector_db mcp_server
+### Using the Published Image
 
-# Check health
-curl http://localhost:8080/health
-```
-
-### Docker Compose
+To run the service using the published docker image, add the below snippet to your docker compose file:
 
 ```yaml
 services:
   vector_db:
-    image: vector_db:latest
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
     ports:
-      - "6333:6333"
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
 
   mcp_server:
-    image: mcp_server:latest
+    image: ghcr.io/i-dot-ai/ai-toolkit-mcp-server:latest
     ports:
-      - "8080:8080"
+      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
     depends_on:
       - vector_db
     environment:
+      - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8080}
       - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     volumes:
       - ./data/mcp_server:/app/custom
+```
+
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be run via:
+
+```bash
+docker compose up -d vector_db mcp_server
+```
+
+Or to run just the `mcp_server`:
+
+```bash
+docker compose up -d mcp_server
+```
+
+### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
+
+```yaml
+services:
+  vector_db:
+    build:
+      context: .
+      dockerfile: components/vector_db/Dockerfile
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  mcp_server:
+    build:
+      context: .
+      dockerfile: components/mcp_server/Dockerfile
+    ports:
+      - "${MCP_SERVER_PORT:-8080}:${MCP_SERVER_PORT:-8080}"
+    depends_on:
+      - vector_db
+    environment:
+      - MCP_SERVER_HOST=${MCP_SERVER_HOST:-0.0.0.0}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-8080}
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./data/mcp_server:/app/custom
+```
+
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be built and run via:
+
+```bash
+docker compose build vector_db mcp_server
+docker compose up -d vector_db mcp_server
+```
+
+Or to build and run just the `mcp_server`:
+
+```bash
+docker compose build mcp_server
+docker compose up -d mcp_server
+```
+
+```bash
+# Check health
+curl http://localhost:8080/health
 ```
 
 ### Connecting an MCP Client

@@ -13,7 +13,8 @@ _common = str(Path(__file__).resolve().parents[1] / "common")
 if _common not in sys.path:
     sys.path.insert(0, _common)
 
-from tests.test_utils import ComposeProject, assign_ports
+
+from tests.test_utils import ComposeProject, assign_ports, build_application_images
 
 # Unique suffix appended to every project name so concurrent test runs never
 # collide, while fixtures that share a base project name still share a network.
@@ -157,6 +158,8 @@ def application_endpoint(request, port_env_map, tmp_path_factory):
             host_path = volume.split(":")[0]
             if host_path.startswith("./") or host_path.startswith("../"):
                 (app_dir / host_path).mkdir(parents=True, exist_ok=True)
+
+    build_application_images(compose_config)
 
     try:
         result = compose.up(capture_output=True, text=True)

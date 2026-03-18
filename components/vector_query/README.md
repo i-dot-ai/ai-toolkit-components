@@ -21,7 +21,93 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Usage
 
-`vector_query` is designed to run alongside a vector database via docker compose. Start the stack with `docker compose up -d`, then use `docker compose exec` to run query commands against the running container.
+`vector_query` is designed to run alongside a vector database via docker compose.
+
+### Starting the Published Image
+
+To run the service using the published docker image, add the below snippet to your docker compose file:
+
+```yaml
+services:
+  vector_db:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  vector_query:
+    image: ghcr.io/i-dot-ai/ai-toolkit-vector-query:latest
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./code/vector_query:/app/custom
+```
+
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be run via:
+
+```bash
+docker compose up -d
+```
+
+Or to run just the `vector_query`:
+
+```bash
+docker compose up -d vector_query
+```
+
+### Building from Source
+
+To build and run from source, add the below snippet to your docker compose file:
+
+```yaml
+services:
+  vector_db:
+    build:
+      context: .
+      dockerfile: components/vector_db/Dockerfile
+    ports:
+      - "${VECTOR_DB_HTTP_PORT:-6333}:${VECTOR_DB_HTTP_PORT:-6333}"
+    environment:
+      - VECTOR_DB_BIND_HOST=${VECTOR_DB_BIND_HOST:-0.0.0.0}
+      - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  vector_query:
+    build:
+      context: .
+      dockerfile: components/vector_query/Dockerfile
+    depends_on:
+      - vector_db
+    environment:
+      - VECTOR_DB_HOST=vector_db
+      - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+    volumes:
+      - ./code/vector_query:/app/custom
+```
+
+Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
+
+The services can then be built and run via:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Or to build and run just the `vector_query`:
+
+```bash
+docker compose build vector_query
+docker compose up -d vector_query
+```
+
+### Querying the data
 
 ```bash
 # List all collections
@@ -44,25 +130,6 @@ docker compose exec vector_query run get --collection documents
 
 # Delete a collection
 docker compose exec vector_query run delete --collection documents
-```
-
-### Docker Compose
-
-```yaml
-services:
-  vector_db:
-    image: vector_db:latest
-    ports:
-      - "6333:6333"
-
-  vector_query:
-    image: vector_query:latest
-    depends_on:
-      - vector_db
-    environment:
-      - VECTOR_DB_HOST=vector_db
-    volumes:
-      - ./code/vector_query:/app/custom
 ```
 
 ## CLI Reference
