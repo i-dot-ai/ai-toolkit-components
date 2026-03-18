@@ -14,6 +14,12 @@ if _common not in sys.path:
     sys.path.insert(0, _common)
 
 
+# Extracta components — allow unit tests to import src modules directly
+_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_root / "components" / "pii_cleanse" / "src"))
+sys.path.insert(0, str(_root / "components" / "data_extractor" / "src"))
+sys.path.insert(0, str(_root / "components" / "pii_eval" / "src"))
+
 from tests.test_utils import ComposeProject, assign_ports, build_application_images
 
 # Unique suffix appended to every project name so concurrent test runs never

@@ -1,0 +1,10 @@
+{
+	"PERSON": "redact",
+	"EMAIL": "redact",
+	"PHONE": "redact",
+	"POST CODE": "redact",
+	"LOCATION": "ignore",
+	"DATE": "ignore",
+	"TIME": "ignore",
+	"ID": "mask"
+}
