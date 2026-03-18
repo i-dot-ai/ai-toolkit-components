@@ -63,7 +63,7 @@ Field extraction is entirely config-driven via a JSON file. The default is `conf
 ## CLI Usage
 
 ```
-python data_extractor/extract.py <parquet_path> [options]
+python components/data_extractor/src/extract.py <parquet_path> [options]
 ```
 
 ### Arguments
@@ -82,19 +82,19 @@ python data_extractor/extract.py <parquet_path> [options]
 
 ```bash
 # Test mode — 5 rows, default model, prints summary
-python data_extractor/extract.py "dummy data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet"
+python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet"
 
 # Test mode — 10 rows, specific model
-python data_extractor/extract.py "dummy data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet" \
+python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet" \
   -m qwen2.5:32b -n 10
 
 # Release mode — full dataset
-python data_extractor/extract.py "dummy data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet" \
+python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet" \
   --mode release \
-  -o "dummy data/extracted.json"
+  -o "applications/extracta/sample_data/extracted.json"
 
 # Custom config (different domain)
-python data_extractor/extract.py "dummy data/procurement_cleansed.parquet" \
+python components/data_extractor/src/extract.py "dummy data/procurement_cleansed.parquet" \
   -c configs/procurement_config.json \
   --mode release \
   -o "dummy data/procurement_extracted.json"
@@ -129,7 +129,7 @@ On error for a row, extracted fields are set to `null` and processing continues.
 Run from the Extracta project root:
 
 ```bash
-docker build -t extracta-data-extractor components/data_extractor
+docker build -f components/data_extractor/Dockerfile -t extracta-data-extractor components/data_extractor
 ```
 
 ### Running the container
@@ -138,22 +138,42 @@ Mount the directory containing your cleansed parquet and output location to `/da
 
 **Test mode — 5 rows:**
 ```bash
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-data-extractor /data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet
+docker run --rm \
+  -v "$(pwd)/applications/extracta/sample_data:/data" \
+  data-extractor \
+  /data/synthetic_incidents_100_cleansed.parquet
 ```
 
 **Release mode — full dataset:**
 ```bash
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-data-extractor /data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet --mode release -o /data/extracted.json
+docker run --rm \
+  -v "$(pwd)/applications/extracta/sample_data:/data" \
+  data-extractor \
+  /data/synthetic_incidents_100_cleansed.parquet \
+  --mode release \
+  -o /data/extracted.json
 ```
 
 **Specific model:**
 ```bash
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-data-extractor /data/synthetic_uk_rail_incident_logs_varied_100_cleansed.parquet -m qwen2.5:32b --mode release -o /data/extracted.json
+docker run --rm \
+  -v "$(pwd)/applications/extracta/sample_data:/data" \
+  data-extractor \
+  /data/synthetic_incidents_100_cleansed.parquet \
+  -m qwen2.5:32b \
+  --mode release \
+  -o /data/extracted.json
 ```
 
 **Custom config** (override the baked-in default):
 ```bash
-docker run --rm -v "$(pwd)/dummy data:/data" -e EXTRACT_CONFIG=/data/my_config.json extracta-data-extractor /data/cleansed.parquet --mode release -o /data/extracted.json
+docker run --rm \
+  -v "$(pwd)/applications/extracta/sample_data:/data" \
+  -e EXTRACT_CONFIG=/data/my_config.json \
+  data-extractor \
+  /data/cleansed.parquet \
+  --mode release \
+  -o /data/extracted.json
 ```
 
 ### Environment variables

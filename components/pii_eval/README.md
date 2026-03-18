@@ -69,7 +69,7 @@ Supported file types: `.csv`, `.parquet`. All fields are optional — omitted fi
 ## CLI Usage
 
 ```
-python evaluate.py <model> [options]
+python components/pii_eval/src/evaluate.py <model> [options]
 ```
 
 ### Arguments
@@ -103,19 +103,19 @@ Each run appends (or writes) one row containing: `model`, `evaluation_date`, `da
 
 ```bash
 # Minimal — uses default dataset, 100 samples, appends to pii_eval_results.csv
-python evaluate.py qwen2.5:32b
+python components/pii_eval/src/evaluate.py qwen2.5:32b
 
 # Custom sample size and output path
-python evaluate.py llama3:8b -n 500 -o results/llama3_eval.csv
+python components/pii_eval/src/evaluate.py llama3:8b -n 500 -o results/llama3_eval.csv
 
 # Use a local dataset via config file
-python evaluate.py mistral-small:24b -c config.json -o results/mistral_eval.csv
+python components/pii_eval/src/evaluate.py mistral-small:24b -c config.json -o results/mistral_eval.csv
 
 # Explicitly overwrite the output file instead of appending
-python evaluate.py qwen2.5:32b -O -o results/eval.csv
+python components/pii_eval/src/evaluate.py qwen2.5:32b -O -o results/eval.csv
 
 # Override column names directly without a config file
-python evaluate.py qwen2.5:32b --source-col text --gt-col masked -o results/eval.csv
+python components/pii_eval/src/evaluate.py qwen2.5:32b --source-col text --gt-col masked -o results/eval.csv
 ```
 
 ---
@@ -127,7 +127,7 @@ python evaluate.py qwen2.5:32b --source-col text --gt-col masked -o results/eval
 Run from the Extracta project root:
 
 ```bash
-docker build -t extracta-pii-eval components/pii_eval
+docker build -f components/pii_eval/Dockerfile -t extracta-pii-eval components/pii_eval
 ```
 
 ### Running the container
@@ -142,23 +142,36 @@ HF_TOKEN=hf_yourtoken
 
 **Default HuggingFace dataset, append to results CSV:**
 ```bash
-docker run --rm --env-file pii_eval/.env -v "$(pwd)/pii_eval/results:/data" extracta-pii-eval mistral-small:24b -o /data/eval.csv
+docker run --rm \
+  --env-file components/pii_eval/.env \
+  -v "$(pwd)/components/pii_eval/results:/data" \
+  pii-eval \
+  mistral-small:24b -o /data/eval.csv
 ```
 
 **Custom sample size:**
 ```bash
-docker run --rm --env-file pii_eval/.env -v "$(pwd)/pii_eval/results:/data" extracta-pii-eval mistral-small:24b -n 50 -o /data/eval.csv
+docker run --rm \
+  --env-file components/pii_eval/.env \
+  -v "$(pwd)/components/pii_eval/results:/data" \
+  pii-eval \
+  mistral-small:24b -n 50 -o /data/eval.csv
 ```
 
 **Local dataset via config file** (mount your data directory to `/data`, config paths must reference `/data/...`):
 ```bash
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-pii-eval mistral-small:24b -c /data/eval_config.json -o /data/eval.csv
+docker run --rm \
+  -v "$(pwd)/applications/extracta/sample_data:/data" \
+  pii-eval \
+  mistral-small:24b \
+  -c /data/eval_config.json \
+  -o /data/eval.csv
 ```
 
 Where `eval_config.json` on your host references container-internal paths:
 ```json
 {
-    "dataset_path": "/data/synthetic_uk_rail_incident_logs_varied_100.csv",
+    "dataset_path": "/data/synthetic_incidents_100.csv",
     "source_text_column": "incident_text",
     "ground_truth_column": "masked_text"
 }
@@ -166,12 +179,20 @@ Where `eval_config.json` on your host references container-internal paths:
 
 **Force re-evaluation of a model already in results:**
 ```bash
-docker run --rm --env-file pii_eval/.env -v "$(pwd)/pii_eval/results:/data" extracta-pii-eval mistral-small:24b -f -o /data/eval.csv
+docker run --rm \
+  --env-file components/pii_eval/.env \
+  -v "$(pwd)/components/pii_eval/results:/data" \
+  pii-eval \
+  mistral-small:24b -f -o /data/eval.csv
 ```
 
 **Overwrite results entirely:**
 ```bash
-docker run --rm --env-file pii_eval/.env -v "$(pwd)/pii_eval/results:/data" extracta-pii-eval mistral-small:24b -O -o /data/eval.csv
+docker run --rm \
+  --env-file components/pii_eval/.env \
+  -v "$(pwd)/components/pii_eval/results:/data" \
+  pii-eval \
+  mistral-small:24b -O -o /data/eval.csv
 ```
 
 ### Evaluating a new Ollama model
@@ -181,7 +202,11 @@ Pull the model on the host first, then pass it as the first argument to the cont
 ```bash
 ollama pull llama3:8b
 
-docker run --rm --env-file pii_eval/.env -v "$(pwd)/pii_eval/results:/data" extracta-pii-eval llama3:8b -o /data/eval.csv
+docker run --rm \
+  --env-file components/pii_eval/.env \
+  -v "$(pwd)/components/pii_eval/results:/data" \
+  pii-eval \
+  llama3:8b -o /data/eval.csv
 ```
 
 The container reaches Ollama on the host via `host.docker.internal:11434`. All results are written to the mounted `/data` volume and persist after the container exits.

@@ -1,0 +1,39 @@
+services:
+
+  pii_cleanse:
+    build:
+      context: ../../components/pii_cleanse
+      dockerfile: Dockerfile
+    image: extracta-pii-cleanse
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      SENSITIVE_CONFIG: /app/configs/sensitive_attr_config.json
+    profiles:
+      - cleanse
+
+  data_extractor:
+    build:
+      context: ../../components/data_extractor
+      dockerfile: Dockerfile
+    image: extracta-data-extractor
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      EXTRACT_CONFIG: /app/configs/extracta_config.json
+    profiles:
+      - extract
+
+  pii_eval:
+    build:
+      context: ../../components/pii_eval
+      dockerfile: Dockerfile
+    image: extracta-pii-eval
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    environment:
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+    profiles:
+      - eval

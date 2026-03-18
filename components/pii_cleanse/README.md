@@ -77,7 +77,7 @@ Return ONLY the modified text with no explanation or commentary.
 ## Usage
 
 ```
-python pii_cleanse/cleanse.py <model> <csv_path> [options]
+python components/pii_cleanse/src/cleanse.py <model> <csv_path> [options]
 ```
 
 ### Arguments
@@ -99,22 +99,22 @@ python pii_cleanse/cleanse.py <model> <csv_path> [options]
 
 ```bash
 # Test mode — print 5 rows to terminal (default)
-python pii_cleanse/cleanse.py mistral-small:24b "dummy data/incidents.csv" --source-col incident_text
+python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text
 
 # Test mode — write to test_output.csv, 10 rows
-python pii_cleanse/cleanse.py mistral-small:24b "dummy data/incidents.csv" --source-col incident_text -n 10 --test-output
+python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -n 10 --test-output
 
 # Release mode — full dataset, auto-named parquet output
-python pii_cleanse/cleanse.py mistral-small:24b "dummy data/incidents.csv" --source-col incident_text --mode release
+python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text --mode release
 
 # Release mode — explicit output path
-python pii_cleanse/cleanse.py mistral-small:24b "dummy data/incidents.csv" --source-col incident_text --mode release -o "dummy data/incidents_cleansed.parquet"
+python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text --mode release -o "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet"
 
 # OpenAI provider
-python pii_cleanse/cleanse.py gpt-4o "dummy data/incidents.csv" --source-col incident_text -p openai --mode release
+python components/pii_cleanse/src/cleanse.py gpt-4o "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -p openai --mode release
 
 # Custom sensitive config
-python pii_cleanse/cleanse.py mistral-small:24b "dummy data/incidents.csv" --source-col incident_text -c configs/my_config.json --mode release
+python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -c configs/my_config.json --mode release
 ```
 
 ## Output
@@ -130,17 +130,29 @@ The parquet output is the expected input format for the downstream `data_extract
 Build from the Extracta project root:
 
 ```bash
-docker build -t extracta-pii-cleanse components/pii_cleanse
+docker build -f components/pii_cleanse/Dockerfile -t extracta-pii-cleanse components/pii_cleanse
 ```
 
 The container mounts a `/data` volume for input and output. `OLLAMA_HOST` defaults to `http://host.docker.internal:11434` so the container can reach Ollama running on your Mac.
 
 ```bash
-# Test mode
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv --source-col incident_text
+DATA="$(pwd)/applications/extracta/sample_data"
 
-# Release mode
-docker run --rm -v "$(pwd)/dummy data:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv --source-col incident_text --mode release -o /data/incidents_cleansed.parquet
+# Test mode — prints 5 rows to terminal
+docker run --rm \
+  -v "${DATA}:/data" \
+  extracta-pii-cleanse \
+  mistral-small:24b /data/synthetic_incidents_100.csv \
+  --source-col incident_text
+
+# Release mode — full dataset
+docker run --rm \
+  -v "${DATA}:/data" \
+  extracta-pii-cleanse \
+  mistral-small:24b /data/synthetic_incidents_100.csv \
+  --source-col incident_text \
+  --mode release \
+  -o /data/synthetic_incidents_100_cleansed.parquet
 ```
 
 Override the Ollama host if needed:
