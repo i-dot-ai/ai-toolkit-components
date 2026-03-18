@@ -2,6 +2,15 @@
 
 LLM-based PII masking tool. Applies configurable redaction rules to a CSV of free-text records, producing a cleansed parquet file for downstream field extraction.
 
+## Author
+
+**Lawrence Freeman**  
+AI Engineer at GBRx  
+AI Incubator Accelerator (AIIA)
+
+- GitHub: https://github.com/lawrencefreeman
+- LinkedIn: https://www.linkedin.com/in/thedatachef/
+
 ## Prerequisites
 
 - [Ollama](https://ollama.com/) installed and running locally with a model pulled, e.g. `ollama pull mistral-small:24b`

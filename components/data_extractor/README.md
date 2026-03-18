@@ -2,6 +2,15 @@
 
 LLM-based structured field extraction tool. Reads a PII-cleansed parquet file (upstream output of `pii_cleanse`), extracts defined fields from the masked text via Ollama, and writes results to JSON.
 
+## Author
+
+**Lawrence Freeman**  
+AI Engineer at GBRx  
+AI Incubator Accelerator (AIIA)
+
+- GitHub: https://github.com/lawrencefreeman
+- LinkedIn: https://www.linkedin.com/in/thedatachef/
+
 ## Prerequisites
 
 - [Ollama](https://ollama.com/) installed and running locally with a model pulled, e.g. `ollama pull mistral-small:24b`

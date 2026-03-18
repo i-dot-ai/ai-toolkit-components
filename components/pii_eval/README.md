@@ -2,6 +2,15 @@
 
 Evaluates an Ollama model's PII masking output against a labelled ground truth dataset. Produces token-level and entity-level (seqeval) metrics and appends results to a CSV for cross-model comparison.
 
+## Author
+
+**Lawrence Freeman**  
+AI Engineer at GBRx  
+AI Incubator Accelerator (AIIA)
+
+- GitHub: https://github.com/lawrencefreeman
+- LinkedIn: https://www.linkedin.com/in/thedatachef/
+
 ## Prerequisites
 
 - [Ollama](https://ollama.com/) installed and running locally with a model pulled, e.g. `ollama pull mistral-small:24b`
