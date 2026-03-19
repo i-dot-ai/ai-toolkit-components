@@ -13,6 +13,8 @@ dependencies = [
     "lxml>=6.1.0",
     "numpy>=1.26.0",
     "mcp>=1.0.0",
+    "pandas>=2.0",
+    "seqeval>=1.2.2",
 ]
 
 [dependency-groups]
