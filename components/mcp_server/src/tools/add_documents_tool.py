@@ -15,7 +15,8 @@ class AddDocumentsTool(BaseTool):
     def description(self) -> str:
         return (
             "Add documents to a collection. Each document should have "
-            "'text' and optionally 'metadata'"
+            "'text', 'source' (a stable identifier such as a URL or file path "
+            "used for deduplication), and optionally 'metadata'"
         )
 
     @property
@@ -33,16 +34,25 @@ class AddDocumentsTool(BaseTool):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "text": {
+                            "content": {
                                 "type": "string",
                                 "description": "Document text content",
+                            },
+                            "source": {
+                                "type": "string",
+                                "description": (
+                                    "Stable identifier for the document (e.g. URL or file path). "
+                                    "Used to generate a deterministic ID so that re-adding the "
+                                    "same source updates the existing document rather than "
+                                    "creating a duplicate."
+                                ),
                             },
                             "metadata": {
                                 "type": "object",
                                 "description": "Optional metadata",
                             },
                         },
-                        "required": ["text"],
+                        "required": ["content", "source"],
                     },
                 },
             },

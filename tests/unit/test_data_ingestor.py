@@ -14,10 +14,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 import numpy as np
 
-# Add data_ingestor src to path so we can import directly
+# Add data_ingestor src and common to path so we can import directly
 _src = str(Path(__file__).resolve().parents[2] / "components" / "data_ingestor" / "src")
-if _src not in sys.path:
-    sys.path.insert(0, _src)
+_common = str(Path(__file__).resolve().parents[2] / "common")
+for _p in (_src, _common):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Mock heavy dependencies that aren't installed locally (fastembed, qdrant_client).
 # These must be set before importing the embedders package.
@@ -168,8 +170,8 @@ class TestQdrantEmbedder:
         assert embedder.port == 1234
         assert embedder.store_type == "qdrant"
 
-    @patch("embedders.qdrant_embedder.QdrantClient")
-    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_store_creates_collection_and_upserts(self, MockTextEmbedding, MockQdrantClient):
         from embedders.qdrant_embedder import QdrantEmbedder
 
@@ -191,8 +193,8 @@ class TestQdrantEmbedder:
         mock_client.create_collection.assert_called_once()
         mock_client.upsert.assert_called_once()
 
-    @patch("embedders.qdrant_embedder.QdrantClient")
-    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_store_skips_collection_creation_if_exists(self, MockTextEmbedding, MockQdrantClient):
         from embedders.qdrant_embedder import QdrantEmbedder
 
@@ -208,8 +210,8 @@ class TestQdrantEmbedder:
         QdrantEmbedder().store([_make_doc()], "existing")
         mock_client.create_collection.assert_not_called()
 
-    @patch("embedders.qdrant_embedder.QdrantClient")
-    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_store_batches_upserts(self, MockTextEmbedding, MockQdrantClient):
         from embedders.qdrant_embedder import QdrantEmbedder
 
@@ -237,8 +239,8 @@ class TestQdrantEmbedder:
 
 class TestDataIngestor:
     @patch("parsers.html_parser.HTMLParser.fetch")
-    @patch("embedders.qdrant_embedder.QdrantClient")
-    @patch("embedders.qdrant_embedder.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_ingest_end_to_end(self, MockTextEmbedding, MockQdrantClient, mock_fetch):
         from ingestor import DataIngestor
 

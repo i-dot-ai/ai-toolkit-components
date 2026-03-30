@@ -26,23 +26,32 @@ class AddQuery(BaseQuery):
                     "type": "string",
                     "description": "Collection name",
                 },
-                "text": {
+                "content": {
                     "type": "string",
-                    "description": "Document text to embed and store",
+                    "description": "Document content to embed and store",
+                },
+                "source": {
+                    "type": "string",
+                    "description": (
+                        "Stable identifier for the document (e.g. URL or file path). "
+                        "Used to generate a deterministic ID so that re-adding the "
+                        "same source updates the existing document rather than "
+                        "creating a duplicate."
+                    ),
                 },
                 "metadata": {
                     "type": "string",
                     "description": "Optional metadata as a JSON string (e.g. '{\"key\": \"val\"}')",
                 },
             },
-            "required": ["collection", "text"],
+            "required": ["collection", "content", "source"],
         }
 
     def execute(self, backend: BaseBackend, **kwargs) -> dict:
         metadata = {}
         if kwargs.get("metadata"):
             metadata = json.loads(kwargs["metadata"])
-        documents = [{"text": kwargs["text"], "metadata": metadata}]
+        documents = [{"content": kwargs["content"], "source": kwargs["source"], "metadata": metadata}]
         count = backend.add_documents(
             collection_name=kwargs["collection"],
             documents=documents,

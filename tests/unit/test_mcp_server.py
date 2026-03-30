@@ -14,10 +14,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 import numpy as np
 
-# Add mcp_server src to path so we can import directly
+# Add mcp_server src and common to path so we can import directly
 _src = str(Path(__file__).resolve().parents[2] / "components" / "mcp_server" / "src")
-if _src not in sys.path:
-    sys.path.insert(0, _src)
+_common = str(Path(__file__).resolve().parents[2] / "common")
+for _p in (_src, _common):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # Mock heavy dependencies that aren't installed locally.
 # These must be set before importing the backends/tools packages.
@@ -50,7 +52,7 @@ class TestQdrantBackend:
         assert backend.port == 1234
         assert backend.backend_type == "qdrant"
 
-    @patch("backends.qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.QdrantClient")
     def test_connect_success(self, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
         mock_client = MagicMock()
@@ -59,8 +61,8 @@ class TestQdrantBackend:
         backend.connect()
         mock_client.get_collections.assert_called_once()
 
-    @patch("backends.qdrant_backend.QdrantClient")
-    @patch("backends.qdrant_backend.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_search(self, MockTextEmbedding, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
 
@@ -71,12 +73,15 @@ class TestQdrantBackend:
         mock_hit = MagicMock()
         mock_hit.id = "abc"
         mock_hit.score = 0.95
-        mock_hit.payload = {"text": "test content"}
+        mock_hit.payload = {"content": "test content"}
 
         mock_response = MagicMock()
         mock_response.points = [mock_hit]
 
+        existing_col = MagicMock()
+        existing_col.name = "test-col"
         mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[existing_col])
         mock_client.query_points.return_value = mock_response
         MockQdrantClient.return_value = mock_client
 
@@ -88,7 +93,7 @@ class TestQdrantBackend:
         assert results[0]["score"] == 0.95
         mock_client.query_points.assert_called_once()
 
-    @patch("backends.qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.QdrantClient")
     def test_list_collections(self, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
 
@@ -104,15 +109,18 @@ class TestQdrantBackend:
         result = backend.list_collections()
         assert result == ["collection-a", "collection-b"]
 
-    @patch("backends.qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.QdrantClient")
     def test_get_documents(self, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
 
         point = MagicMock()
         point.id = "doc1"
-        point.payload = {"text": "content"}
+        point.payload = {"content": "content"}
 
+        existing_col = MagicMock()
+        existing_col.name = "test-col"
         mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[existing_col])
         mock_client.scroll.return_value = ([point], None)
         MockQdrantClient.return_value = mock_client
 
@@ -123,19 +131,22 @@ class TestQdrantBackend:
         assert result["documents"][0]["id"] == "doc1"
         assert result["next_offset"] is None
 
-    @patch("backends.qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.QdrantClient")
     def test_delete_collection(self, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
 
+        existing_col = MagicMock()
+        existing_col.name = "test-col"
         mock_client = MagicMock()
+        mock_client.get_collections.return_value = MagicMock(collections=[existing_col])
         MockQdrantClient.return_value = mock_client
 
         backend = QdrantBackend()
         assert backend.delete_collection("test-col") is True
         mock_client.delete_collection.assert_called_once_with(collection_name="test-col")
 
-    @patch("backends.qdrant_backend.QdrantClient")
-    @patch("backends.qdrant_backend.TextEmbedding")
+    @patch("qdrant_backend.QdrantClient")
+    @patch("qdrant_backend.TextEmbedding")
     def test_add_documents(self, MockTextEmbedding, MockQdrantClient):
         from backends.qdrant_backend import QdrantBackend
 
@@ -151,7 +162,9 @@ class TestQdrantBackend:
         MockQdrantClient.return_value = mock_client
 
         backend = QdrantBackend()
-        count = backend.add_documents("test-col", [{"text": "hello world"}])
+        count = backend.add_documents(
+            "test-col", [{"content": "hello world", "source": "https://example.com"}]
+        )
 
         assert count == 1
         mock_client.create_collection.assert_called_once()
@@ -248,7 +261,10 @@ class TestTools:
         tool = AddDocumentsTool()
         assert tool.tool_name == "add_documents"
 
-        docs = [{"text": "hello"}, {"text": "world"}]
+        docs = [
+            {"content": "hello", "source": "https://example.com/1"},
+            {"content": "world", "source": "https://example.com/2"},
+        ]
         backend = self._make_mock_backend()
         result = tool.execute(backend, collection_name="col", documents=docs)
         backend.add_documents.assert_called_once_with(
@@ -266,8 +282,8 @@ class TestMCPServer:
         import yaml
 
         # Patch backend connection and tool discovery to avoid side effects
-        with patch("backends.qdrant_backend.QdrantClient"), \
-             patch("backends.qdrant_backend.TextEmbedding"), \
+        with patch("qdrant_backend.QdrantClient"), \
+             patch("qdrant_backend.TextEmbedding"), \
              patch("server.FastMCP"):
             from server import MCPServer
 
@@ -288,8 +304,8 @@ class TestMCPServer:
     def test_tool_filtering(self, tmp_path):
         import yaml
 
-        with patch("backends.qdrant_backend.QdrantClient"), \
-             patch("backends.qdrant_backend.TextEmbedding"), \
+        with patch("qdrant_backend.QdrantClient"), \
+             patch("qdrant_backend.TextEmbedding"), \
              patch("server.FastMCP"):
             from server import MCPServer
 
