@@ -4,6 +4,19 @@ Build AI-powered applications faster with ready-to-use, containerised building b
 
 Use it to build things like: a semantic search tool over your documents, an AI agent that can query your knowledge base via MCP, or a document ingestion pipeline — without wiring up a vector database, embedding models, or an MCP server from scratch.
 
+## Why use this?
+
+Building AI applications from open-source tools typically means significant integration work before you have something you can actually build on top of: picking the right tools, wiring them together, building configuration and extension patterns, writing the glue code, and keeping everything working as requirements change.
+
+This toolkit takes a different approach. Each component handles one job and is already integrated with the others. You get:
+
+- **Running in minutes, not weeks.** Published Docker images mean `docker compose up` is all you need. No build pipeline, no glue code.
+- **Customisable without forking.** Every component copies its default configuration and extension code into a mounted volume on first run. Add or swap implementations by dropping a file in a directory — no image rebuild required.
+- **Composable.** Use a complete application stack, or pick only the components you need. If you have strong opinions about one part of the stack, write a custom implementation that plugs in to the rest.
+- **Consistent patterns.** Every component follows the same conventions for configuration, extension, and testing, so there is less to learn each time you add or modify one.
+
+The components are designed to be used as-is or as a starting point — working integrations out of the box, with clear extension points wherever you need to diverge from the defaults. Building the same stack from scratch means handling the full infrastructure and integration work yourself.
+
 ## What Is This?
 
 This repository provides **components** and **applications** that you can use to quickly assemble AI solutions without starting from scratch.
@@ -23,8 +36,8 @@ This repository provides **components** and **applications** that you can use to
 │  │    │  • Parse HTML   │  embed   │  • Store vectors│               │  │
 │  │    │  • Embed content│  ─────▶  │  • Search       │               │  │
 │  │    │                 │          │  • Query API    │               │  │
-│  │    └─────────────────┘          └────────┬────────┘               │  │
-│  │         COMPONENT                  COMPONENT │                    │  │
+│  │    └─────────────────┘          └───────┬─────────┘               │  │
+│  │         COMPONENT                       │ COMPONENT               │  │
 │  │                                         │                         │  │
 │  │                                  ┌──────┴──────────┐              │  │
 │  │                                  │   mcp_server    │              │  │
