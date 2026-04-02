@@ -8,6 +8,11 @@ on:
     pull_request:
     workflow_dispatch:
 
+permissions:
+  contents: read         # Required to read repository contents
+  checks: write          # Required to create check runs for test results
+  pull-requests: write        # Required to write back to PR
+
 jobs:
   discover:
     runs-on: ubuntu-latest
