@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 
@@ -104,7 +106,9 @@ class TestMcpDatastore:
         # Add a custom ping tool
         tools_dir = application_endpoint / "code" / "mcp_server" / "tools"
         assert tools_dir.exists(), "Entrypoint should have created tools directory"
-        (tools_dir / "ping_tool.py").write_text(custom_tool_code)
+        tool_file = tools_dir / "ping_tool.py"
+        tool_file.write_text(custom_tool_code)
+        os.chmod(tool_file, 0o644)
 
         # Restart mcp_server so it re-imports tools
         result = application_endpoint.restart("mcp_server", capture_output=True, text=True)
@@ -126,11 +130,15 @@ class TestMcpDatastore:
         # Add a custom parser for .test files
         parser_dir = application_endpoint / "code" / "data_ingestor" / "parsers"
         assert parser_dir.exists(), "Entrypoint should have created parsers directory"
-        (parser_dir / "test_parser.py").write_text(custom_parser_code)
+        parser_file = parser_dir / "test_parser.py"
+        parser_file.write_text(custom_parser_code)
+        os.chmod(parser_file, 0o644)
 
         # Create a test file to ingest
         test_file = "/app/custom/sample.test"
-        (parser_dir.parent / "sample.test").write_text("This is test content for the custom parser.")
+        sample_file = parser_dir.parent / "sample.test"
+        sample_file.write_text("This is test content for the custom parser.")
+        os.chmod(sample_file, 0o644)
 
         # Run data_ingestor with the test file
         result = application_endpoint.exec("data_ingestor", "run", test_file)
