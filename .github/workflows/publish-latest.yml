@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Wait for component build and test to succeed
         if: github.ref == 'refs/heads/main'
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc # v1.3.4
         with:
           ref: ${{ github.sha }}
           check-regexp: 'build-and-test'
