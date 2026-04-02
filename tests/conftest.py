@@ -166,18 +166,6 @@ def application_endpoint(request, port_env_map, tmp_path_factory):
         if result.returncode != 0:
             raise RuntimeError(f"Failed to start application: {result.stderr}")
 
-        # Fix ownership of volume mount directories — container entrypoints may
-        # create subdirectories as root, making them unwritable by the test runner
-        for service in compose_config.get("services", {}).values():
-            for volume in service.get("volumes", []):
-                host_path = volume.split(":")[0]
-                if host_path.startswith("./") or host_path.startswith("../"):
-                    subprocess.run(
-                        ["docker", "run", "--rm", "-v", f"{app_dir / host_path}:/mount",
-                         "alpine", "chmod", "-R", "a+rwX", "/mount"],
-                        capture_output=True,
-                    )
-
         # Wait for services that expose ports — they must be reachable before tests run.
         # Services without ports (e.g. one-shot CLI workers) are skipped.
         port_services = [
@@ -197,6 +185,20 @@ def application_endpoint(request, port_env_map, tmp_path_factory):
                     f"Service '{service}' did not become healthy.\n"
                     f"Logs:\n{logs}"
                 ) from e
+
+        # Fix permissions on volume mount directories after all entrypoints have
+        # finished. Entrypoints run as a non-root user and create subdirectories
+        # owned by that uid. chmod a+rwX makes them writable by the test runner
+        # regardless of which uid it runs as.
+        for service in compose_config.get("services", {}).values():
+            for volume in service.get("volumes", []):
+                host_path = volume.split(":")[0]
+                if host_path.startswith("./") or host_path.startswith("../"):
+                    subprocess.run(
+                        ["docker", "run", "--rm", "-v", f"{app_dir / host_path}:/mount",
+                         "alpine", "chmod", "-R", "a+rwX", "/mount"],
+                        capture_output=True,
+                    )
     except Exception:
         compose.down(capture_output=True)
         raise
