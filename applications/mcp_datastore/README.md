@@ -1,6 +1,10 @@
 # MCP Datastore
 
-A vector database application for ingesting, storing, and querying document embeddings. Combines the `vector_db`, `data_ingestor`, and `mcp_server` components to provide a complete content ingestion, retrieval, and AI agent access pipeline.
+Ingest documents, search them by meaning, and give AI agents direct access to your knowledge base. Combines `vector_db`, `data_ingestor`, and `mcp_server` into a single stack.
+
+**Semantic search** finds documents by meaning rather than exact keywords — a query for "climate policy" matches documents about carbon emissions even if they don't use those exact words.
+
+**MCP (Model Context Protocol)** is an open standard that lets AI assistants like Claude call tools exposed by a server — so once connected, your AI agent can search your document collection directly from a conversation.
 
 ```
 ┌──────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -38,6 +42,25 @@ A vector database application for ingesting, storing, and querying document embe
 
 Docker and Docker Compose are required. See the [Prerequisites guide](../../docs/prerequisites.md) for installation instructions.
 
+## Quick Start
+
+```bash
+# 1. Copy the compose file to your working directory
+cp applications/mcp_datastore/docker-compose.yaml .
+
+# 2. Start the vector database and data ingestor
+docker compose up -d vector_db data_ingestor
+
+# 3. Ingest a URL
+docker compose exec data_ingestor run https://example.com
+
+# 4. Start the MCP server and connect Claude Code
+docker compose up -d mcp_server
+claude mcp add mcp_datastore --transport sse http://localhost:8080/sse
+```
+
+That's it — Claude can now search your document collection.
+
 ## Usage
 
 Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you wish to run the application, then run all commands from that directory.
@@ -48,26 +71,32 @@ Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you w
 docker compose up -d vector_db
 ```
 
+### Start the Data Ingestor
+
+```bash
+docker compose up -d data_ingestor
+```
+
 ### Ingest Content
 
-Use `docker compose run` to execute the data ingestor within the compose network:
+Use `docker compose exec` to run ingestion commands in the running container:
 
 ```bash
 # Ingest a single URL
-docker compose run data_ingestor https://example.com
+docker compose exec data_ingestor run https://example.com
 
 # Ingest multiple URLs
-docker compose run data_ingestor \
+docker compose exec data_ingestor run \
   https://example.com \
   https://example.com/page2
 
 # Ingest from a file containing a list of URLs to ingest.
 # Note that the container can read files from input only (see [Ingest Local Files](#ingest-local-files) below).
 cp /path/to/urls.txt input/urls.txt
-docker compose run data_ingestor -f /input/urls.txt
+docker compose exec data_ingestor run -f /input/urls.txt
 
 # Specify a collection name
-docker compose run data_ingestor -c my_collection https://example.com
+docker compose exec data_ingestor run -c my_collection https://example.com
 ```
 
 ### Ingest Local Files
@@ -80,10 +109,10 @@ mkdir -p input
 cp my_document.html input/
 
 # Ingest a local file
-docker compose run data_ingestor input/my_document.html
+docker compose exec data_ingestor run input/my_document.html
 
 # Ingest multiple local files
-docker compose run data_ingestor input/doc1.html input/doc2.html
+docker compose exec data_ingestor run input/doc1.html input/doc2.html
 ```
 
 **Note:** Only files within the `input/` directory are accessible to the data_ingestor container.
@@ -122,11 +151,27 @@ The server uses SSE transport. Point your MCP client at:
 - **SSE endpoint:** `http://localhost:8080/sse`
 - **Messages endpoint:** `http://localhost:8080/messages/`
 
-For example, to add it to Claude Code:
+**Claude Code:**
 
 ```bash
 claude mcp add mcp_datastore --transport sse http://localhost:8080/sse
 ```
+
+**Claude Desktop:**
+
+Add the following to your Claude Desktop config file (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "mcp_datastore": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}
+```
+
+Restart Claude Desktop after saving the file.
 
 All tools are enabled by default. To restrict which tools are exposed, set `enabled_tools` in `code/mcp_server/config/config.yaml`:
 

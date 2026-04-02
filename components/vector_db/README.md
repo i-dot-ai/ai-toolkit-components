@@ -39,7 +39,7 @@ services:
       - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
       - VECTOR_DB_GRPC_PORT=${VECTOR_DB_GRPC_PORT:-6334}
     volumes:
-      - ./data/vector_db:/app/custom
+      - ./code/vector_db:/app/custom
 ```
 
 Then start the service:
@@ -66,7 +66,7 @@ services:
       - VECTOR_DB_HTTP_PORT=${VECTOR_DB_HTTP_PORT:-6333}
       - VECTOR_DB_GRPC_PORT=${VECTOR_DB_GRPC_PORT:-6334}
     volumes:
-      - ./data/vector_db:/app/custom
+      - ./code/vector_db:/app/custom
 ```
 
 Then build and start the service:

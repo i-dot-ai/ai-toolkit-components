@@ -2,6 +2,8 @@
 
 A containerised CLI for querying and managing vector databases directly — useful for testing, ad-hoc exploration, and shell scripting without needing an MCP client.
 
+**When to use this:** After ingesting documents with `data_ingestor`, use `vector_query` to verify what was stored, test search queries, and explore collections — before wiring up the full `mcp_server` for AI agent access. It's the fastest way to check your data looks right.
+
 ## Features
 
 - Pluggable backend architecture — drop in a new backend class and it's auto-discovered

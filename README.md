@@ -2,6 +2,8 @@
 
 Build AI-powered applications faster with ready-to-use, containerised building blocks.
 
+Use it to build things like: a semantic search tool over your documents, an AI agent that can query your knowledge base via MCP, or a document ingestion pipeline — without wiring up a vector database, embedding models, or an MCP server from scratch.
+
 ## What Is This?
 
 This repository provides **components** and **applications** that you can use to quickly assemble AI solutions without starting from scratch.
@@ -34,6 +36,12 @@ This repository provides **components** and **applications** that you can use to
 │  └───────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────┘
 
+┌─────────────────────────────────────────────────────────────────────────┐
+│  vector_query  (standalone component — not part of the app pipeline)    │
+│  CLI for querying and managing vector databases directly                │
+│  Useful for testing, exploration, and scripting without an MCP client   │
+└─────────────────────────────────────────────────────────────────────────┘
+
 COMPONENTS = Independent, reusable Docker services (the building blocks)
 APPLICATIONS = docker-compose orchestrations that wire components together
 ```
@@ -60,10 +68,6 @@ All paths — running an application, using individual components, or developing
 ---
 
 ## User Guide
-
-In order to employ the components and template applications provided in this repository, it is not necessary to clone the entire repository. Instead, you have two options:
-1. **Template Application**: You can directly use the template applications available in the `applications/` directory. These applications are designed to showcase how to integrate and utilise the components effectively. By simply copying the relevant `docker-compose.yaml` files from the desired application directory, you can set up and run the application in your own environment without needing the full repository.
-2. **Individual Components**: If you are interested in using specific components, you can write your own `docker-compose.yaml` file that references the components you wish to use and pulls the docker images as required. This allows you to tailor the setup to your specific needs without the overhead of the entire repository.
 
 ### Applications
 
@@ -117,12 +121,10 @@ services:
       - ./code/vector_db:/app/custom
 ```
 
-There are two types of components:
-1. **Continuously running services** (e.g. the [vector_db](components/vector_db/)) that run indefinitely and expose an API. For these, use `docker compose up` to start them as background services, and `docker compose down` to stop them.
-2. **Task-based components** (e.g. the [data_ingestor](components/data_ingestor/)) that execute a task and then exit. For these components, use `docker compose run` to execute them on demand. For example:
+All components are **continuously running services** that expose an API or CLI interface. Start them as background services with `docker compose up` and stop them with `docker compose down`. For example, to ingest a URL into the data ingestor:
 
 ```bash
-docker compose run data_ingestor http://example.com
+docker compose exec data_ingestor run http://example.com
 ```
 
 Components are customisable via mounted volumes. Each component mounts a directory under `code` where defaults are copied on first run. Users can modify these files to customize behaviour. Please refer to each component's README for specific instructions on usage, and how to customize and extend its functionality.
