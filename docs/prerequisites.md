@@ -93,3 +93,13 @@ Verify your installation:
 ```bash
 uv --version
 ```
+
+### Install pre-commit hooks
+
+Once dependencies are installed, run the following to enable automatic security and code quality checks on every `git commit`:
+
+```bash
+pre-commit install
+```
+
+> **Note:** The Docker daemon must be running when you commit, as the Trivy vulnerability scanner hook requires it.
