@@ -30,7 +30,7 @@ if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
     echo "Copying default: requirements.txt"
     cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
 fi
-pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
+pip install --quiet --user -r "$CUSTOM_DIR/requirements.txt"
 
 echo "Vector query ready. Use 'docker compose exec vector_query vector_query <args>' to run."
 

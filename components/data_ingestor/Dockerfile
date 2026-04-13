@@ -41,4 +41,9 @@ ENV PYTHONPATH="/app/custom:/app/common:/app"
 RUN printf '#!/bin/sh\nexec python /app/ingestor.py "$@"\n' > /usr/local/bin/run && \
     chmod +x /usr/local/bin/run
 
+# Run as a non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+USER appuser
+
 ENTRYPOINT ["/app/entrypoint.sh"]

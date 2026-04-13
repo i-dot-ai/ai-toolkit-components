@@ -30,7 +30,7 @@ if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
     echo "Copying default: requirements.txt"
     cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
 fi
-pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
+pip install --quiet --user -r "$CUSTOM_DIR/requirements.txt"
 
 echo "Data ingestor ready. Use 'docker compose exec data_ingestor ingestor <args>' to run."
 

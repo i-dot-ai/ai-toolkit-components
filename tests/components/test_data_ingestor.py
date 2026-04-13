@@ -95,6 +95,7 @@ class TestDataIngestorContainer:
             tmp_path = f.name
 
         try:
+            os.chmod(tmp_path, 0o644)
             component_service.cp(tmp_path, f"{INGESTOR_SERVICE}:{container_path}", check=True)
             result = self.run_ingestor(component_service, "-c", collection, "--file", container_path)
             assert result.returncode == 0

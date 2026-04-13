@@ -37,6 +37,10 @@ ENV PYTHONPATH="/app/custom:/app/common:/app"
 # Default host and port (can be overridden via MCP_SERVER_HOST / MCP_SERVER_PORT env vars)
 ENV MCP_SERVER_HOST=0.0.0.0 MCP_SERVER_PORT=8080
 
+# Run as a non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+USER appuser
 
 HEALTHCHECK --interval=5s --timeout=3s --retries=5 \
   CMD curl -f http://localhost:${MCP_SERVER_PORT}/health || exit 1

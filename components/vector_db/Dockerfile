@@ -30,6 +30,13 @@ COPY components/vector_db/src/load_config.py /app/load_config.py
 # Create custom directory (single mount point for user customization)
 RUN mkdir -p /app/custom
 
+# Run as a non-root user; /qdrant must also be owned by appuser so the
+# Qdrant binary can write to its storage and snapshot directories at runtime.
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /qdrant
+USER appuser
+
 # Healthcheck so dependent services can wait for readiness
 HEALTHCHECK --interval=5s --timeout=3s --retries=5 \
   CMD curl -f http://localhost:${VECTOR_DB_HTTP_PORT}/healthz || exit 1
