@@ -157,7 +157,9 @@ def application_endpoint(request, port_env_map, tmp_path_factory):
         for volume in service.get("volumes", []):
             host_path = volume.split(":")[0]
             if host_path.startswith("./") or host_path.startswith("../"):
-                (app_dir / host_path).mkdir(parents=True, exist_ok=True)
+                d = app_dir / host_path
+                d.mkdir(parents=True, exist_ok=True)
+                d.chmod(0o777)
 
     build_application_images(compose_config)
 
