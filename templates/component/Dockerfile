@@ -78,6 +78,11 @@ RUN mkdir -p /app/custom
 # TODO: remove /app/common from PYTHONPATH if your component does not use extensibility extensions
 ENV PYTHONPATH="/app/custom:/app/common:/app"
 
+# Run as a non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+USER appuser
+
 # ----------------------------------------------------------------------------
 # Health check — required for HTTP services so that dependent containers can
 # use `depends_on: condition: service_healthy`.
