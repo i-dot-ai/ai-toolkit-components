@@ -47,7 +47,7 @@ if [ ! -f "$CUSTOM_DIR/requirements.txt" ]; then
     echo "Copying default: requirements.txt"
     cp /app/defaults/requirements.txt "$CUSTOM_DIR/requirements.txt"
 fi
-pip install --quiet -r "$CUSTOM_DIR/requirements.txt"
+pip install --quiet --user -r "$CUSTOM_DIR/requirements.txt"
 
 # ----------------------------------------------------------------------------
 # TODO: If your component uses startup scripts, start your service in the
