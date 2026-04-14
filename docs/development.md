@@ -25,7 +25,8 @@ See the [Prerequisites guide](prerequisites.md) for full installation instructio
 │   └── <component-name>/
 │       ├── src/                # Application source code
 │       ├── Dockerfile          # Component build definition
-│       └── entrypoint.sh       # Container startup script
+│       ├── entrypoint.sh       # Container startup script
+│       └── README.md
 ├── docs/                       # Documentation
 ├── templates/                  # Starting-point files for new components and applications
 ├── tests/                      # Pytest-based test suite
