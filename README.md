@@ -1,5 +1,7 @@
 # AI Toolkit Components Repository
 
+> Built by the [Incubator for Artificial Intelligence (i.AI)](https://ai.gov.uk), part of the UK Government.
+
 Build AI-powered applications faster with ready-to-use, containerised building blocks.
 
 Use it to build things like: a semantic search tool over your documents, an AI agent that can query your knowledge base via MCP, or a document ingestion pipeline — without wiring up a vector database, embedding models, or an MCP server from scratch.
@@ -16,6 +18,18 @@ This toolkit takes a different approach. Each component handles one job and is a
 - **Consistent patterns.** Every component follows the same conventions for configuration, extension, and testing, so there is less to learn each time you add or modify one.
 
 The components are designed to be used as-is or as a starting point — working integrations out of the box, with clear extension points wherever you need to diverge from the defaults. Building the same stack from scratch means handling the full infrastructure and integration work yourself.
+
+## Who Is This For?
+
+This toolkit is aimed at **UK Government teams and their delivery partners** who want to build AI-powered applications without starting from scratch.
+
+It is a good fit if you are:
+
+- A **development team in a government department or arm's-length body** that wants to ship an AI feature quickly without building infrastructure from scratch.
+- A **delivery partner or supplier** working on a government AI project that needs a consistent, auditable starting point.
+- A **technical architect or lead developer** evaluating how to compose open-source AI tools (vector databases, embedding models, MCP servers) in a maintainable way.
+
+It is less suited to teams that need a fully managed SaaS platform, or who have no requirement to self-host and customise their AI stack.
 
 ## What Is This?
 
