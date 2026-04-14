@@ -104,9 +104,11 @@ cp applications/mcp_datastore/docker-compose.yaml .
 docker compose up -d
 ```
 
-Docker pulls the published images automatically — no source code or build step needed. On first run, each component writes its default configuration into a `code/` directory. Edit those files to customise behaviour, then restart the relevant service.
+Docker pulls the published images automatically — no source code or build step needed.
 
-See the application's README for full usage instructions, including how to ingest content and connect an AI agent.
+See the application's README for full usage instructions.
+
+Go to [Applications](#applications) to see the full list of available applications.
 
 ### Build a new application from components
 
@@ -140,6 +142,8 @@ docker compose up -d
 ```
 
 Each component mounts a `code/` subdirectory where its default configuration and any extensibility code are written on first run. See each component's README for the full list of environment variables, ports, and customisation options.
+
+Go to [Components](#components) for the full list of available components and their capabilities.
 
 ---
 
