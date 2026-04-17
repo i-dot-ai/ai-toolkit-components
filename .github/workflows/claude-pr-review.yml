@@ -80,13 +80,12 @@ jobs:
           (github.event_name == 'pull_request' && (
             github.event.action == 'opened' ||
             github.event.action == 'ready_for_review' ||
-            (github.event.action == 'synchronize'
+            github.event.action == 'synchronize'
           ))
         uses: i-dot-ai/i-dot-ai-core-github-actions/.github/actions/claude-review@main
         with:
           TIMEOUT_DURATION: '20'
           LLM_GATEWAY_URL: 'https://llm-gateway.i.ai.gov.uk'
-        secrets:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }} # Register a new repo key here: https://github.com/i-dot-ai/core-llm-gateway/blob/main/terraform/litellm/keys.tf#L2
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
