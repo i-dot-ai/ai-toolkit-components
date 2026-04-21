@@ -50,7 +50,7 @@ jobs:
     with:
       APP_NAME: ${{ needs.set-vars.outputs.app-name }}
       EC2_INSTANCE_TYPE: ${{ needs.set-vars.outputs.ec2-instance-type }}
-      ENVIRONMENT: 'prod'
+      ENVIRONMENT: 'dev'
       USE_OIDC: true
     secrets:
       AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT}}
