@@ -63,6 +63,7 @@ docker compose --file applications/<app-name>/docker-compose.yaml up -d --build
 - `common/` - Shared Python modules used across multiple components (e.g., backend clients, registries)
 - `templates/` - Scaffolding for new components and applications
 - `tests/` - Pytest-based tests split into `unit/`, `components/`, and `applications/` subdirectories
+- `docs/` - Project documentation
 
 ### Component Structure
 Each component in `components/<name>/` contains:
