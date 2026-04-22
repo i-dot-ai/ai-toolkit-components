@@ -97,10 +97,11 @@ Docker and Docker Compose are required. See the [Prerequisites guide](docs/prere
 
 ### Run an existing application
 
-Copy an application's `docker-compose.yaml` to your working directory and start it:
+1. Create a new folder on your computer (e.g. `mcp-datastore`).
+2. Download [mcp_datastore/docker-compose.yaml](https://github.com/i-dot-ai/ai-toolkit-components/blob/main/applications/mcp_datastore/docker-compose.yaml) and save it into that folder.
+3. Open a terminal in that folder and run:
 
 ```bash
-cp applications/mcp_datastore/docker-compose.yaml .
 docker compose up -d
 ```
 

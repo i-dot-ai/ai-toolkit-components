@@ -44,26 +44,27 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 ## Quick Start
 
+1. Create a new folder on your computer (e.g. `mcp-datastore`).
+2. Download [docker-compose.yaml](https://github.com/i-dot-ai/ai-toolkit-components/blob/main/applications/mcp_datastore/docker-compose.yaml) and save it into that folder.
+3. Open a terminal in that folder.
+4. Run the following commands:
+
 ```bash
-# 1. Copy the compose file to your working directory
-cp applications/mcp_datastore/docker-compose.yaml .
+# Start the services
+docker compose up -d
 
-# 2. Start the vector database and data ingestor
-docker compose up -d vector_db data_ingestor
-
-# 3. Ingest a URL
+# Ingest a URL
 docker compose exec data_ingestor run https://example.com
 
-# 4. Start the MCP server and connect Claude Code
-docker compose up -d mcp_server
+# Connect Claude Code to the MCP server
 claude mcp add mcp_datastore --transport sse http://localhost:8080/sse
 ```
 
 That's it — Claude can now search your document collection.
 
-## Usage
+See below for more detailed usage instructions and configuration options.
 
-Copy [`docker-compose.yaml`](docker-compose.yaml) into the directory where you wish to run the application, then run all commands from that directory.
+## Usage
 
 ### Start the Vector Database
 
@@ -90,11 +91,6 @@ docker compose exec data_ingestor run \
   https://example.com \
   https://example.com/page2
 
-# Ingest from a file containing a list of URLs to ingest.
-# Note that the container can read files from input only (see [Ingest Local Files](#ingest-local-files) below).
-cp /path/to/urls.txt input/urls.txt
-docker compose exec data_ingestor run -f /input/urls.txt
-
 # Specify a collection name
 docker compose exec data_ingestor run -c my_collection https://example.com
 ```
@@ -109,13 +105,17 @@ mkdir -p input
 cp my_document.html input/
 
 # Ingest a local file
-docker compose exec data_ingestor run input/my_document.html
+docker compose exec data_ingestor run /input/my_document.html
 
 # Ingest multiple local files
-docker compose exec data_ingestor run input/doc1.html input/doc2.html
+docker compose exec data_ingestor run /input/doc1.html input/doc2.html
+
+# Ingest URLs from a text file (one URL per line)
+cp /path/to/urls.txt input/urls.txt
+docker compose exec data_ingestor run -f /input/urls.txt
 ```
 
-**Note:** Only files within the `input/` directory are accessible to the data_ingestor container.
+**Note:** Only files within the `input/` directory are accessible to the data_ingestor container and can be ingested using the `/input/` path.
 
 ### Query the Database
 
@@ -135,7 +135,7 @@ curl http://localhost:6333/healthz
 Start the MCP server alongside the vector database:
 
 ```bash
-docker compose up -d vector_db mcp_server
+docker compose up -d mcp_server
 ```
 
 Check it is healthy:
