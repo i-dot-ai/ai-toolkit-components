@@ -11,7 +11,6 @@ See the [Prerequisites guide](prerequisites.md) for full installation instructio
 - Docker and Docker Compose
 - Python 3.12+
 - `uv` (the project's package manager)
-- pre-commit (for security checks and linting)
 
 ## Repository Structure
 

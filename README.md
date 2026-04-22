@@ -170,6 +170,7 @@ Components are single-purpose Docker services. Use them individually in your own
 
 Each component's README covers its available image, configuration options, and how to extend it via mounted volumes.
 
+---
 
 ## Contributing
 
