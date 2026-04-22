@@ -14,6 +14,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
+### Install pre-commit hooks
+```bash
+pre-commit install
+```
+Must be run once after cloning so that security and code quality checks run automatically on `git commit`. The Docker daemon must be running when committing, as the Trivy hook requires it.
+
 ### Build a component
 ```bash
 docker compose build <component-name>
