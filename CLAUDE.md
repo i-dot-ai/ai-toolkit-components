@@ -62,6 +62,9 @@ Each component in `components/<name>/` contains:
 - `entrypoint.sh` - Container startup script
 - `src/` - Source code, configs, and plugins
 
+### Writing Tests
+Always use the `ComposeProject` class when writing tests that interact with Docker services.
+
 ### Test Fixtures
 Tests use parametrised pytest fixtures defined in `tests/conftest.py`:
 - `component_endpoint` - Builds, starts, and cleans up a single component; yields the service URL
