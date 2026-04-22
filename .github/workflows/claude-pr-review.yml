@@ -32,7 +32,6 @@ jobs:
     outputs:
       ec2-instance-type: ${{ steps.export.outputs.ec2-instance-type }}
       app-name: ${{ steps.export.outputs.app-name }}
-      aws-region: ${{ steps.export.outputs.aws-region }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
