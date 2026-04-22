@@ -108,7 +108,7 @@ cp my_document.html input/
 docker compose exec data_ingestor run /input/my_document.html
 
 # Ingest multiple local files
-docker compose exec data_ingestor run /input/doc1.html input/doc2.html
+docker compose exec data_ingestor run /input/doc1.html /input/doc2.html
 
 # Ingest URLs from a text file (one URL per line)
 cp /path/to/urls.txt input/urls.txt
