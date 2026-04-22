@@ -60,6 +60,8 @@ docker compose --file applications/<app-name>/docker-compose.yaml up -d --build
 ### Directory Structure
 - `components/` - Independent Docker services (e.g., `vector_db` wrapping Qdrant)
 - `applications/` - Docker-compose files that orchestrate components into complete stacks
+- `common/` - Shared Python modules used across multiple components (e.g., backend clients, registries)
+- `templates/` - Scaffolding for new components and applications
 - `tests/` - Pytest-based tests split into `unit/`, `components/`, and `applications/` subdirectories
 
 ### Component Structure
