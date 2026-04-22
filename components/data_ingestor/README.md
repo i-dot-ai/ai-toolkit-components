@@ -30,6 +30,8 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 The data ingestor is designed to run alongside a vector database via docker compose.
 
+> **Tip:** If you want to run `data_ingestor`, `vector_db`, and `mcp_server` together, the [`mcp_datastore` application](../../applications/mcp_datastore/) provides a ready-made `docker-compose.yaml` — copy and go.
+
 ### Starting the Published Image
 
 To run the service using the published docker image, add the below snippet to your docker compose file:
@@ -52,7 +54,7 @@ services:
       - VECTOR_DB_HOST=vector_db
       - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     volumes:
-      - ./data/data_ingestor:/app/custom
+      - ./code/data_ingestor:/app/custom
 ```
 
 Note that this includes the `vector_db` component - if you wish to run alongside an alternative database you can replace that section.
@@ -93,7 +95,7 @@ services:
       - VECTOR_DB_HOST=vector_db
       - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     volumes:
-      - ./data/data_ingestor:/app/custom
+      - ./code/data_ingestor:/app/custom
 ```
 
 Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.

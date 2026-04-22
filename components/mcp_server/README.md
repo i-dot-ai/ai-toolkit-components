@@ -2,6 +2,8 @@
 
 A containerised MCP (Model Context Protocol) server that exposes vector database operations as tools for AI agents.
 
+MCP (Model Context Protocol) is an open standard that lets AI assistants like Claude discover and call tools exposed by a server — enabling your AI agent to search your document collection, list collections, and add documents directly from a conversation.
+
 ## Features
 
 - Pluggable backend architecture - support for multiple vector databases
@@ -34,6 +36,8 @@ Docker and Docker Compose are required. See the [Prerequisites guide](../../docs
 
 The MCP server is designed to run alongside a vector database via docker compose.
 
+> **Tip:** If you want to run `mcp_server`, `vector_db`, and `data_ingestor` together, the [`mcp_datastore` application](../../applications/mcp_datastore/) provides a ready-made `docker-compose.yaml` — copy and go.
+
 ### Using the Published Image
 
 To run the service using the published docker image, add the below snippet to your docker compose file:
@@ -60,7 +64,7 @@ services:
       - VECTOR_DB_HOST=vector_db
       - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     volumes:
-      - ./data/mcp_server:/app/custom
+      - ./code/mcp_server:/app/custom
 ```
 
 Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
@@ -107,7 +111,7 @@ services:
       - VECTOR_DB_HOST=vector_db
       - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
     volumes:
-      - ./data/mcp_server:/app/custom
+      - ./code/mcp_server:/app/custom
 ```
 
 Note that this includes the `vector_db` component — if you wish to run alongside an alternative database you can replace that section.
@@ -126,8 +130,11 @@ docker compose build mcp_server
 docker compose up -d mcp_server
 ```
 
+### Verifying the Server
+
+Once running, confirm the server is healthy:
+
 ```bash
-# Check health
 curl http://localhost:8080/health
 ```
 

@@ -35,6 +35,7 @@ Ready-to-use starting-point files are provided in `templates/component/`:
 | File | Purpose |
 |------|---------|
 | [`common/registry.py`](../common/registry.py) | Generic `PluginRegistry` for auto-discovering extensibility subclasses |
+| [`common/qdrant_backend.py`](../common/qdrant_backend.py) | `QdrantBase` — shared base class for components that read from or write to Qdrant; provides connection management, collection lifecycle, embedding model initialisation, standard database operations, deterministic document ID generation, and input validation |
 
 ## Structure
 

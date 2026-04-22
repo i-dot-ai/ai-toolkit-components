@@ -96,3 +96,21 @@ Test utilities in `tests/test_utils.py` provide:
 
 ### Current Applications
 - `mcp_datastore` - Vector database application using the vector_db component
+
+## Documentation
+
+When making code changes, always check whether the following need updating to reflect the change:
+
+- **`README.md`** (repo root) — reflects the overall capabilities and component list
+- **`components/<name>/README.md`** — covers configuration, ports, environment variables, and extension points for that component
+- **`applications/<name>/README.md`** — covers usage, services, and configuration for that application
+- **`docs/contributing_components.md`** — shared library table, plugin patterns, and step-by-step guide
+- **`docs/contributing_applications.md`** — application structure and conventions
+- **`docs/development.md`** — developer environment and CI/CD description
+- **`templates/component/`** and **`templates/application/`** — annotated starting-point files used by contributors; must reflect current conventions
+
+In particular:
+- Adding or removing a component or application → update the root `README.md` tables and the `CLAUDE.md` **Current Components** / **Current Applications** lists above
+- Adding or changing shared library files in `common/` → update the shared library table in `docs/contributing_components.md`
+- Changing environment variables, ports, volume mounts, or config options → update the relevant component or application README
+- Changing plugin patterns, extension interfaces, or Dockerfile/entrypoint conventions → update `docs/contributing_components.md` and the relevant template files

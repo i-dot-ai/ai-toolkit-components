@@ -7,12 +7,7 @@ This guide explains how to add new components and applications to this repositor
 
 ## Prerequisites
 
-See the [Prerequisites guide](prerequisites.md) for full installation instructions. You will need:
-
-- Docker and Docker Compose
-- Python 3.12+
-- `uv` (the project's package manager)
-- Project dependencies installed with `uv sync`
+See the [Development guide](development.md) for environment setup instructions. You will need Docker, Docker Compose, Python 3.12+, and `uv`.
 
 ---
 
@@ -25,16 +20,10 @@ You may also wish to extend an existing component by adding new extensions (e.g.
 
 ---
 
-## CI/CD Overview
+## CI/CD
 
-The following workflows run automatically on every pull request:
+The CI/CD workflows run automatically on every pull request. See the [Development guide](development.md#cicd-pipelines) for a full description of each workflow.
 
-| Workflow | What it does |
-|----------|-------------|
-| `unit-tests.yml` | Runs `tests/unit/test_<name>.py` for each component in parallel |
-| `component-build-test.yml` | Builds each component's Docker image and runs `tests/components/test_<name>.py` |
-| `application-test.yml` | Runs `tests/applications/test_<name>.py` for each application after component builds succeed |
+The short version: push your branch, open a PR, and the pipelines will build your component, run all tests, and report results. No pipeline configuration changes are needed — components and applications are discovered automatically.
 
-On merge to `main`, a `publish-latest.yml` workflow automatically pushes a `latest`-tagged image to GHCR (`ghcr.io/i-dot-ai/ai-toolkit-<component_name>`). Versioned releases are created manually via the `release.yml` workflow.
-
-The CI pipelines discover components and tests automatically by scanning directory and file names — no pipeline configuration changes are needed.
+On merge to `main`, a `publish-latest.yml` workflow automatically pushes a `latest`-tagged image to GHCR (`ghcr.io/i-dot-ai/ai-toolkit-<component_name>`).
