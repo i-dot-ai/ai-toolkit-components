@@ -7,10 +7,12 @@ on:
     types: [opened, ready_for_review, synchronize]
     branches: "*"
     paths:
-      - "terraform/**"
-      - "config/**"
-      - "frontend/**"
-      - "backend/**"
+      - "components/**"
+      - "applications/**"
+      - "common/**"
+      - "templates/**"
+      - "tests/**"
+      - "docs/**"
       - '.github/**'
       - 'README.md'
   workflow_dispatch:
@@ -101,6 +103,7 @@ jobs:
       APP_NAME: ${{ needs.set-vars.outputs.app-name }}
       RUNNER_LABEL: ${{ needs.start-runner.outputs.label }}
       EC2_INSTANCE_ID: ${{ needs.start-runner.outputs.ec2-instance-id }}
+      ENVIRONMENT: 'dev'
       USE_OIDC: true
     secrets:
       AWS_GITHUBRUNNER_PAT: ${{ secrets.AWS_GITHUBRUNNER_PAT }}
