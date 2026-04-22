@@ -17,5 +17,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    # Upper bound is a safe-chain workaround: 4.6.0 is blocked by minimum package age.
+    # Remove the upper bound once 4.6.0 has aged through safe-chain.
     "pre-commit>=3.0.0,<4.6.0",
 ]
