@@ -14,3 +14,8 @@ dependencies = [
     "numpy>=1.26.0",
     "mcp>=1.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=3.0.0,<4.6.0",
+]
