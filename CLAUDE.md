@@ -14,6 +14,12 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
+### Install pre-commit hooks
+```bash
+pre-commit install
+```
+Must be run once after cloning so that security and code quality checks run automatically on `git commit`. The Docker daemon must be running when committing, as the Trivy hook requires it.
+
 ### Build a component
 ```bash
 docker compose build <component-name>
@@ -54,13 +60,19 @@ docker compose --file applications/<app-name>/docker-compose.yaml up -d --build
 ### Directory Structure
 - `components/` - Independent Docker services (e.g., `vector_db` wrapping Qdrant)
 - `applications/` - Docker-compose files that orchestrate components into complete stacks
+- `common/` - Shared Python modules used across multiple components (e.g., backend clients, registries)
+- `templates/` - Scaffolding for new components and applications
 - `tests/` - Pytest-based tests split into `unit/`, `components/`, and `applications/` subdirectories
+- `docs/` - Project documentation
 
 ### Component Structure
 Each component in `components/<name>/` contains:
 - `Dockerfile` - Build definition
 - `entrypoint.sh` - Container startup script
 - `src/` - Source code, configs, and plugins
+
+### Writing Tests
+Always use the `ComposeProject` class when writing tests that interact with Docker services.
 
 ### Test Fixtures
 Tests use parametrised pytest fixtures defined in `tests/conftest.py`:

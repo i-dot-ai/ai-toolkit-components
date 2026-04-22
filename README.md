@@ -173,7 +173,13 @@ The `components/` directory contains modular services that can be independently 
    docker compose up -d <component-a>
    ```
 
-4. **Run tests**:
+4. **Install pre-commit hooks**:
+   ```bash
+   pre-commit install
+   ```
+   This enables automatic security and code quality checks on every `git commit`. Note that the Docker daemon must be running when you commit, as the Trivy hook requires it.
+
+5. **Run tests**:
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
    uv sync
@@ -183,12 +189,12 @@ The `components/` directory contains modular services that can be independently 
    ./run_tests.sh application <application-a>
    ```
 
-5. **Customise/add new components**:
+6. **Customise/add new components**:
    - Create new services by adding `components/<component-new>/Dockerfile` and `entrypoint.sh`
    - Add/modify source code in `components/<component-a>/src/`
    - Add tests for new functionality under `tests/components/`
 
-6. **Customise/add new application templates**:
+7. **Customise/add new application templates**:
    - Create new directories under `applications/`
    - Define services in `docker-compose.yaml` files
    - Add application-specific tests under `tests/applications/`
