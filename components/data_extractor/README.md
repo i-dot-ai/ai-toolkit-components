@@ -1,45 +1,25 @@
 # Data Extractor
 
-LLM-based structured field extraction tool. Reads a PII-cleansed parquet file (upstream output of `pii_cleanse`), extracts defined fields from the masked text via Ollama, and writes results to JSON.
-
-## Author
-
-**Lawrence Freeman**  
-AI Engineer at GBRx  
-AI Incubator Accelerator (AIIA)
-
-- GitHub: https://github.com/lawrencefreeman
-- LinkedIn: https://www.linkedin.com/in/thedatachef/
-
-## Prerequisites
-
-- [Ollama](https://ollama.com/) installed and running locally with a model pulled, e.g. `ollama pull mistral-small:24b`
-- [Docker](https://www.docker.com/)
-- A PII-cleansed parquet file produced by `pii_cleanse`
-
-> **Platform note:** The default `OLLAMA_HOST` (`host.docker.internal:11434`) works on Mac and Windows Docker Desktop. On Linux, `host.docker.internal` is not available by default — override it with the host's Docker bridge IP: `-e OLLAMA_HOST=http://172.17.0.1:11434`. On Windows, the recommended setup is to run both Ollama and Docker inside WSL2.
-
----
+LLM-based structured field extraction tool. Reads a PII-cleansed parquet file (upstream output of `pii_cleanse`), extracts defined fields from the masked text via Ollama, and writes results to the format specified in `runtime_config.json`.
 
 ## Role in the pipeline
 
 ```
 [pii_cleanse]  →  *_cleansed.parquet
                         ↓
-                  [data_extractor]  →  *_extracted.json
+                  [data_extractor]  →  *_extracted.csv
 ```
 
 The input **must** be the cleansed parquet produced by `pii_cleanse/cleanse.py`. The extractor reads from the `masked_text` column by default — never from the original unredacted text. Columns containing unredacted data (e.g. `incident_text`, `ner_labels`) are dropped from the output as defined in the config.
 
 ## Configuration
 
-Field extraction is entirely config-driven via a JSON file. The default is `configs/extracta_config.json`.
+### Extraction config (`configs/fields_config.json`)
 
-### Config structure
+Field extraction is entirely config-driven. The default is `configs/fields_config.json`.
 
 ```json
 {
-  "text_column": "masked_text",
   "drop_columns": ["incident_text", "ner_labels"],
   "fields_to_extract": [
     {
@@ -56,14 +36,33 @@ Field extraction is entirely config-driven via a JSON file. The default is `conf
 
 | Key | Description |
 |---|---|
-| `text_column` | Column in the parquet to extract from. Should always be the masked text column. |
-| `drop_columns` | Columns to exclude from output — use this to ensure unredacted text is never written to the output JSON. |
-| `fields_to_extract` | List of `name` + `description` pairs. The description is passed directly to the LLM as an instruction. |
+| `drop_columns` | Columns to exclude from output — prevents unredacted text from appearing in results. |
+| `fields_to_extract` | List of `name` + `description` pairs. The description is passed directly to the LLM. |
+
+### Runtime config (`configs/runtime_config.json`)
+
+Operational settings that are typically set once per deployment:
+
+```json
+{
+  "ollama_timeout_seconds": 120,
+  "output_format": "csv",
+  "source_col": "masked_text"
+}
+```
+
+| Key | Description | Valid values |
+|---|---|---|
+| `ollama_timeout_seconds` | HTTP client timeout for Ollama requests | Integer (seconds) |
+| `output_format` | How extracted output is written | `csv` (default), `json`, `stdout` |
+| `source_col` | Column name containing the masked text to extract from | String |
+
+`stdout` is useful for quickly eyeballing model output without writing a file — combine with `-n` to limit rows.
 
 ## CLI Usage
 
 ```
-python components/data_extractor/src/extract.py <parquet_path> [options]
+python extract.py <parquet_path> [options]
 ```
 
 ### Arguments
@@ -72,108 +71,68 @@ python components/data_extractor/src/extract.py <parquet_path> [options]
 |---|---|---|
 | `parquet_path` | required | Path to input parquet (output of `pii_cleanse`) |
 | `-m`, `--model` | `mistral-small:24b` | Ollama model name |
-| `-c`, `--config` | `configs/extracta_config.json` | Path to extraction config JSON |
-| `--text-col` | from config | Override the text column from config |
-| `--mode` | `test` | `test`: small sample eyeball; `release`: full dataset |
-| `-n`, `--test-rows` | `5` | Number of rows to process in test mode |
-| `-o`, `--output` | `<parquet_stem>_extracted.json` | Output JSON path |
+| `-c`, `--config` | `configs/fields_config.json` | Path to extraction config JSON |
+| `-r`, `--runtime-config` | `configs/runtime_config.json` | Path to runtime config |
+| `-o`, `--output` | derived from input filename | Override output file path |
+| `-n`, `--preview N` | — | Process only the first N rows |
 
 ### Examples
 
 ```bash
-# Test mode — 5 rows, default model, prints summary
-python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet"
+# Full run — output format driven by runtime_config.json
+python extract.py /data/incidents_cleansed.parquet
 
-# Test mode — 10 rows, specific model
-python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet" \
-  -m qwen2.5:32b -n 10
+# Preview 5 rows to terminal (set output_format: stdout in runtime_config.json)
+python extract.py /data/incidents_cleansed.parquet -n 5
 
-# Release mode — full dataset
-python components/data_extractor/src/extract.py "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet" \
-  --mode release \
-  -o "applications/extracta/sample_data/extracted.json"
+# Specific model, explicit output path
+python extract.py /data/incidents_cleansed.parquet -m qwen2.5:32b -o /data/extracted.csv
 
 # Custom config (different domain)
-python components/data_extractor/src/extract.py "dummy data/procurement_cleansed.parquet" \
-  -c configs/procurement_config.json \
-  --mode release \
-  -o "dummy data/procurement_extracted.json"
+python extract.py /data/procurement_cleansed.parquet -c configs/procurement_config.json
 ```
 
 ## Output
 
-A JSON array of objects. Each object contains:
-- All original parquet columns **except** those listed in `drop_columns`
-- One key per extracted field, as defined in `fields_to_extract`
+Output format is controlled by `output_format` in `runtime_config.json`:
 
-```json
-[
-  {
-    "incident_id": "INC-001",
-    "timestamp": "2024-01-15T09:23:00",
-    "masked_text": "Signal failure reported at [LOCATION]...",
-    "issue": "Signal failure caused by faulty relay",
-    "impact": "45 minute delays to 12 services",
-    "resolution_action": "Relay replaced by S&T team",
-    "severity_indicator": "2"
-  }
-]
-```
+- **`csv`** (default) — writes a CSV file alongside the input; human-readable and suitable for review in Excel / BI tools
+- **`json`** — writes a JSON array of objects alongside the input
+- **`stdout`** — prints each extracted record as formatted JSON to the terminal; no file written
 
-On error for a row, extracted fields are set to `null` and processing continues.
+Each record contains all original parquet columns (minus `drop_columns`) plus one key per extracted field. On error for a row, extracted fields are set to `null` and processing continues.
 
 ## Docker
 
-### Build
-
-Run from the Extracta project root:
+Set your data directory once, then reuse across commands:
 
 ```bash
-docker build -f components/data_extractor/Dockerfile -t extracta-data-extractor components/data_extractor
+export DATA_DIR=/path/to/your/data
 ```
 
-### Running the container
+Build from the Extracta project root:
 
-Mount the directory containing your cleansed parquet and output location to `/data`. Ollama must be running on the host machine.
-
-**Test mode — 5 rows:**
 ```bash
-docker run --rm \
-  -v "$(pwd)/applications/extracta/sample_data:/data" \
-  data-extractor \
-  /data/synthetic_incidents_100_cleansed.parquet
+docker build -t extracta-data-extractor components/data_extractor
 ```
 
-**Release mode — full dataset:**
-```bash
-docker run --rm \
-  -v "$(pwd)/applications/extracta/sample_data:/data" \
-  data-extractor \
-  /data/synthetic_incidents_100_cleansed.parquet \
-  --mode release \
-  -o /data/extracted.json
-```
+Run:
 
-**Specific model:**
 ```bash
-docker run --rm \
-  -v "$(pwd)/applications/extracta/sample_data:/data" \
-  data-extractor \
-  /data/synthetic_incidents_100_cleansed.parquet \
-  -m qwen2.5:32b \
-  --mode release \
-  -o /data/extracted.json
+# Full run (output format set in runtime_config.json)
+docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents_cleansed.parquet
+
+# Preview first 5 rows to terminal
+docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents_cleansed.parquet -n 5
+
+# Specific model, explicit output
+docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents_cleansed.parquet -m qwen2.5:32b -o /data/extracted.csv
 ```
 
 **Custom config** (override the baked-in default):
+
 ```bash
-docker run --rm \
-  -v "$(pwd)/applications/extracta/sample_data:/data" \
-  -e EXTRACT_CONFIG=/data/my_config.json \
-  data-extractor \
-  /data/cleansed.parquet \
-  --mode release \
-  -o /data/extracted.json
+docker run --rm -v "$DATA_DIR:/data" -e EXTRACT_CONFIG=/data/my_config.json extracta-data-extractor /data/cleansed.parquet
 ```
 
 ### Environment variables
@@ -181,7 +140,8 @@ docker run --rm \
 | Variable | Default | Description |
 |---|---|---|
 | `OLLAMA_HOST` | `http://host.docker.internal:11434` | Ollama endpoint. `host.docker.internal` resolves to the host machine on Mac. |
-| `EXTRACT_CONFIG` | `/app/configs/extracta_config.json` | Path to extraction config inside the container. Override to use a config from the mounted volume. |
+| `EXTRACT_CONFIG` | `/app/configs/fields_config.json` | Path to extraction config inside the container. Override to use a config from the mounted volume. |
+| `RUNTIME_CONFIG` | `/app/configs/runtime_config.json` | Path to runtime config inside the container. |
 
 ## Dependencies
 

@@ -22,7 +22,7 @@ services:
       - ${DATA_DIR:-./data}:/data
     environment:
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
-      EXTRACT_CONFIG: /app/configs/extracta_config.json
+      EXTRACT_CONFIG: /app/configs/fields_config.json
     profiles:
       - extract
 

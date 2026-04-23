@@ -1,0 +1,6 @@
+{
+  "ollama_timeout_seconds": 120,
+  "output_format": "parquet",
+  "source_col": "incident_text",
+  "output_col": "masked_text"
+}

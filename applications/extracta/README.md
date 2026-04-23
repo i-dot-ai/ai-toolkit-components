@@ -35,19 +35,14 @@ DATA_DIR=/path/to/data docker compose --profile eval run --rm pii_eval \
 
 ```bash
 DATA_DIR=/path/to/data docker compose --profile cleanse run --rm pii_cleanse \
-  mistral-small:24b /data/incidents.csv \
-  --source-col incident_text \
-  --mode release \
-  -o /data/incidents_cleansed.parquet
+  mistral-small:24b /data/incidents.csv
 ```
 
 ### Step 3: Extract structured fields
 
 ```bash
 DATA_DIR=/path/to/data docker compose --profile extract run --rm data_extractor \
-  /data/incidents_cleansed.parquet \
-  --mode release \
-  -o /data/incidents_extracted.json
+  /data/incidents_cleansed.parquet
 ```
 
 ## Environment variables
@@ -78,5 +73,5 @@ Example with a custom config mounted from the data directory:
 ```bash
 DATA_DIR=/path/to/data EXTRACT_CONFIG=/data/my_config.json \
   docker compose --profile extract run --rm data_extractor \
-  /data/incidents_cleansed.parquet --mode release -o /data/extracted.json
+  /data/incidents_cleansed.parquet
 ```

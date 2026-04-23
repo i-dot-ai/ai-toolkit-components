@@ -1,180 +1,151 @@
-# AI Toolkit Components Repository
+# Extracta
 
-> Built by the [Incubator for Artificial Intelligence (i.AI)](https://ai.gov.uk), part of the UK Government.
-
-Build AI-powered applications faster with ready-to-use, containerised building blocks.
-
-Use it to build things like: a semantic search tool over your documents, an AI agent that can query your knowledge base via MCP, or a document ingestion pipeline — without wiring up a vector database, embedding models, or an MCP server from scratch.
-
-## Why use this?
-
-Building AI applications from open-source tools typically means significant integration work before you have something you can actually build on top of: picking the right tools, wiring them together, building configuration and extension patterns, writing the glue code, and keeping everything working as requirements change.
-
-This toolkit takes a different approach. Each component handles one job and is already integrated with the others. You get:
-
-- **Running in minutes, not weeks.** Published Docker images mean `docker compose up` is all you need. No build pipeline, no glue code.
-- **Customisable without forking.** Every component copies its default configuration and extension code into a mounted volume on first run. Add or swap implementations by dropping a file in a directory — no image rebuild required.
-- **Composable.** Use a complete application stack, or pick only the components you need. If you have strong opinions about one part of the stack, write a custom implementation that plugs in to the rest.
-- **Consistent patterns.** Every component follows the same conventions for configuration, extension, and testing, so there is less to learn each time you add or modify one.
-
-The components are designed to be used as-is or as a starting point — working integrations out of the box, with clear extension points wherever you need to diverge from the defaults. Building the same stack from scratch means handling the full infrastructure and integration work yourself.
-
-## Who Is This For?
-
-This toolkit is aimed at **UK Government teams and their delivery partners** who want to build AI-powered applications without starting from scratch.
-
-It is a good fit if you are:
-
-- A **development team in a government department or arm's-length body** that wants to ship an AI feature quickly without building infrastructure from scratch.
-- A **delivery partner or supplier** working on a government AI project that needs a consistent, auditable starting point.
-- A **technical architect or lead developer** evaluating how to compose open-source AI tools (vector databases, embedding models, MCP servers) in a maintainable way.
-
-It is less suited to teams that need a fully managed SaaS platform, or who have no requirement to self-host and customise their AI stack.
-
-## What Is This?
-
-This repository provides **components** and **applications** that you can use to quickly assemble AI solutions without starting from scratch.
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            APPLICATIONS                                 │
-│         Complete solutions built by combining components                │
-│                                                                         │
-│  ┌───────────────────────────────────────────────────────────────────┐  │
-│  │  mcp_datastore                                                    │  │
-│  │  A document ingestion and semantic search application             │  │
-│  │                                                                   │  │
-│  │    ┌─────────────────┐          ┌─────────────────┐               │  │
-│  │    │  data_ingestor  │ ──────▶  │    vector_db    │               │  │
-│  │    │                 │          │                 │               │  │
-│  │    │  • Parse HTML   │  embed   │  • Store vectors│               │  │
-│  │    │  • Embed content│  ─────▶  │  • Search       │               │  │
-│  │    │                 │          │  • Query API    │               │  │
-│  │    └─────────────────┘          └───────┬─────────┘               │  │
-│  │         COMPONENT                       │ COMPONENT               │  │
-│  │                                         │                         │  │
-│  │                                  ┌──────┴──────────┐              │  │
-│  │                                  │   mcp_server    │              │  │
-│  │                                  │                 │              │  │
-│  │                                  │  • MCP protocol │              │  │
-│  │                                  │  • AI agent API │              │  │
-│  │                                  └─────────────────┘              │  │
-│  │                                       COMPONENT                   │  │
-│  └───────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│  vector_query  (standalone component — not part of the app pipeline)    │
-│  CLI for querying and managing vector databases directly                │
-│  Useful for testing, exploration, and scripting without an MCP client   │
-└─────────────────────────────────────────────────────────────────────────┘
-
-COMPONENTS = Independent, reusable Docker services (the building blocks)
-APPLICATIONS = docker-compose orchestrations that wire components together
-```
-
-**Components** are standalone Docker services that do one thing well. They're published as images to GHCR and designed to be mixed and matched.
-
-**Applications** are complete solutions that combine components using docker-compose. Copy an application's `docker-compose.yaml` to your project and you're ready to go — no cloning required.
-
-## Getting Started
-
-| I want to... | Go to... |
-|--------------|----------|
-| **Run an existing application** | [Quick Start](#quick-start) |
-| **Build a new application from components** | [Quick Start → Build a new application](#build-a-new-application-from-components) |
-| **Use a component in your own stack** | [Components](#components) |
-| **Build applications or modify components** | [Development guide](docs/development.md) |
-| **Build components and/or contribute back** | [Contributing](docs/contributing.md) |
-
-## Prerequisites
-
-Docker and Docker Compose are required. See the [Prerequisites guide](docs/prerequisites.md) for installation instructions for macOS, Windows, and Linux.
+Three-stage pipeline for LLM-based PII redaction and structured field extraction from free-text records. All stages run locally via [Ollama](https://ollama.com/) and are containerised with Docker.
 
 ---
 
-## Quick Start
+## Architecture
 
-### Run an existing application
+![Extracta pipeline architecture](extracta_architecture.drawio.png)
 
-1. Create a new folder on your computer (e.g. `mcp-datastore`).
-2. Download [mcp_datastore/docker-compose.yaml](https://github.com/i-dot-ai/ai-toolkit-components/blob/main/applications/mcp_datastore/docker-compose.yaml) and save it into that folder.
-3. Open a terminal in that folder and run:
-
-```bash
-docker compose up -d
-```
-
-Docker pulls the published images automatically — no source code or build step needed.
-
-See the application's README for full usage instructions.
-
-Go to [Applications](#applications) to see the full list of available applications.
-
-### Build a new application from components
-
-Create a `docker-compose.yaml` that references the published component images you need:
-
-```yaml
-services:
-  vector_db:
-    image: ghcr.io/i-dot-ai/ai-toolkit-vector-db:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - ./code/vector_db:/app/custom
-
-  data_ingestor:
-    image: ghcr.io/i-dot-ai/ai-toolkit-data-ingestor:latest
-    depends_on:
-      vector_db:
-        condition: service_healthy
-    environment:
-      - VECTOR_DB_HOST=vector_db
-      - VECTOR_DB_PORT=6333
-    volumes:
-      - ./code/data_ingestor:/app/custom
-```
-
-Then start it:
-
-```bash
-docker compose up -d
-```
-
-Each component mounts a `code/` subdirectory where its default configuration and any extensibility code are written on first run. See each component's README for the full list of environment variables, ports, and customisation options.
-
-Go to [Components](#components) for the full list of available components and their capabilities.
+`pii_eval` is an offline evaluation step — it does not sit in the production path. Run it to validate model/config choices before committing to `pii_cleanse`.
 
 ---
 
-## Applications
+## Repository structure
 
-Applications are complete, ready-to-run solutions. Each is a `docker-compose.yaml` that wires published component images together.
+```
+components/
+  pii_eval/          LLM PII masking evaluator (optional, offline)
+  pii_cleanse/       PII redaction — produces cleansed parquet
+  data_extractor/    Structured field extraction from cleansed text
 
-| Application | Description |
-|-------------|-------------|
-| [mcp_datastore](applications/mcp_datastore/) | Document ingestion and semantic search with MCP agent access |
+applications/
+  extracta/          Docker Compose orchestration of all three components
+
+tests/
+  unit/              Unit tests (no Docker required)
+  components/        Container-level tests for each component
+  applications/      Integration tests for the full pipeline
+
+configs/             Shared default config files (also baked into each component image)
+dummy data/          Synthetic UK rail incident logs for local testing
+```
 
 ---
 
 ## Components
 
-Components are single-purpose Docker services. Use them individually in your own `docker-compose.yaml`, or combine them into a custom application.
-
-| Component | Description |
-|-----------|-------------|
-| [vector_db](components/vector_db/) | Qdrant vector database with plugin support |
-| [data_ingestor](components/data_ingestor/) | Content ingestion and embedding |
-| [mcp_server](components/mcp_server/) | MCP server exposing vector DB tools for AI agents |
-| [vector_query](components/vector_query/) | CLI for querying and managing vector databases directly |
-
-Each component's README covers its available image, configuration options, and how to extend it via mounted volumes.
+| Component | Directory | README |
+|---|---|---|
+| LLM PII evaluator *(optional)* | `components/pii_eval/` | [components/pii_eval/README.md](components/pii_eval/README.md) |
+| PII redaction | `components/pii_cleanse/` | [components/pii_cleanse/README.md](components/pii_cleanse/README.md) |
+| Structured field extraction | `components/data_extractor/` | [components/data_extractor/README.md](components/data_extractor/README.md) |
 
 ---
 
-## Contributing
+## Quick start
 
-See [Contributing](docs/contributing.md) for a full guide on adding new components and applications.
+See [applications/extracta/README.md](applications/extracta/README.md) for Docker Compose usage running the full pipeline.
 
-See [LICENSE](LICENSE) for terms.
+### Prerequisites
+
+- [Ollama](https://ollama.com/) installed and running locally
+- [Docker](https://www.docker.com/) and Docker Compose
+- A model pulled locally, e.g.:
+  ```bash
+  ollama pull mistral-small:24b
+  ```
+
+### Building component images
+
+Each component has its own Dockerfile, built from its own directory:
+
+```bash
+docker build -t extracta-pii-cleanse   components/pii_cleanse
+docker build -t extracta-data-extractor components/data_extractor
+docker build -t extracta-pii-eval      components/pii_eval
+```
+
+---
+
+## Configuration
+
+| File | Used by | Purpose |
+|---|---|---|
+| `configs/sensitive_attr_config.json` | `pii_eval`, `pii_cleanse` | PII entity actions (`redact` / `ignore`) |
+| `configs/fields_config.json` | `data_extractor` | Fields to extract from masked text |
+
+Default configs are baked into each component image. Override at runtime by mounting a custom config and setting the relevant environment variable (`SENSITIVE_CONFIG` or `EXTRACT_CONFIG`).
+
+---
+
+## Environment variables
+
+All three containers respect:
+
+| Variable | Default | Description |
+|---|---|---|
+| `OLLAMA_HOST` | `http://host.docker.internal:11434` | Ollama endpoint. `host.docker.internal` resolves to the host on Mac. Override for Linux or remote Ollama. |
+
+`pii_eval` additionally requires:
+
+| Variable | Description |
+|---|---|
+| `HF_TOKEN` | Hugging Face token for the labelled evaluation dataset. Pass via `--env-file .env`. Not required when using a local dataset. |
+
+`.env` file format — values must be **unquoted**:
+
+```
+HF_TOKEN=hf_yourtoken
+```
+
+---
+
+## Data flow
+
+- `pii_cleanse` outputs a parquet with a `masked_text` column — the only text column `data_extractor` reads.
+- `data_extractor` drops original unredacted text columns from its output — these are never written to the extracted JSON.
+- All stages mount data via `-v /path/to/data:/data`. Input and output paths inside the container are under `/data`.
+
+---
+
+## Development
+
+### Installing test dependencies
+
+Test dependencies are declared as an optional extra in `pyproject.toml` and are kept separate from the runtime dependencies baked into each component's Docker image.
+
+Install them using `uv` (recommended):
+
+```bash
+uv sync --extra test
+```
+
+Or with pip:
+
+```bash
+pip install -e ".[test]"
+```
+
+### Running the unit tests
+
+Unit tests require no Docker, no Ollama, and no network access — all LLM calls are mocked.
+
+```bash
+pytest tests/unit/ -v
+```
+
+### Test structure
+
+| Directory | What it tests | Requires |
+|---|---|---|
+| `tests/unit/` | Pure logic — prompt building, tokenisation, metrics | Nothing external |
+| `tests/components/` | Each component's Docker image end-to-end | Docker |
+| `tests/applications/` | Full pipeline via Docker Compose | Docker + Ollama |
+
+---
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

@@ -18,12 +18,38 @@ from openai import OpenAI
 from tqdm import tqdm
 
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
+
 DEFAULT_SENSITIVE_CONFIG = os.environ.get(
     "SENSITIVE_CONFIG",
     str(Path(__file__).resolve().parent.parent / "configs" / "sensitive_attr_config.json"),
 )
-DEFAULT_SOURCE_COL = "source_text"
-DEFAULT_OUTPUT_COL = "masked_text"
+DEFAULT_RUNTIME_CONFIG = os.environ.get(
+    "RUNTIME_CONFIG",
+    str(Path(__file__).resolve().parent.parent / "configs" / "runtime_config.json"),
+)
+
+_RUNTIME_DEFAULTS = {
+    "ollama_timeout_seconds": 120,
+    "output_format": "parquet",
+    "source_col": "source_text",
+    "output_col": "masked_text",
+}
+
+
+# ---------------------------------------------------------------------------
+# Config loading
+# ---------------------------------------------------------------------------
+
+def load_runtime_config(path: str) -> dict:
+    """Load runtime_config.json, merging over built-in defaults."""
+    if os.path.isfile(path):
+        with open(path) as f:
+            return {**_RUNTIME_DEFAULTS, **json.load(f)}
+    print(
+        f"Warning: runtime config not found at {path}, using defaults.",
+        file=sys.stderr,
+    )
+    return dict(_RUNTIME_DEFAULTS)
 
 
 # ---------------------------------------------------------------------------
@@ -39,8 +65,8 @@ ENTITY_HINTS = {
 def build_system_prompt(config: dict) -> str:
     """
     Build a system prompt from sensitive_attr_config.
-    action == "ignore" → instruct LLM to leave unchanged
-    anything else     → instruct LLM to replace with [LABEL]
+    action == "ignore"  → instruct LLM to leave unchanged
+    anything else       → instruct LLM to replace with [LABEL]
     """
     lines = []
     for entity, action in config.items():
@@ -63,9 +89,15 @@ def build_system_prompt(config: dict) -> str:
 # Inference
 # ---------------------------------------------------------------------------
 
-def call_model(source_text: str, model: str, provider: str, system_prompt: str) -> str:
+def call_model(
+    source_text: str,
+    model: str,
+    provider: str,
+    system_prompt: str,
+    timeout: int,
+) -> str:
     if provider == "openai":
-        client = OpenAI()  # reads OPENAI_API_KEY from environment
+        client = OpenAI()
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -87,7 +119,7 @@ def call_model(source_text: str, model: str, provider: str, system_prompt: str) 
                 "stream": False,
                 "options": {"temperature": 0},
             },
-            timeout=120,
+            timeout=timeout,
         )
         response.raise_for_status()
         return response.json()["message"]["content"]
@@ -105,40 +137,26 @@ def parse_args():
     parser.add_argument("csv_path", help="Path to input CSV file")
     parser.add_argument(
         "-p", "--provider", default="ollama", choices=["ollama", "openai"],
-        help="Inference provider: ollama (default) or openai"
+        help="Inference provider: ollama (default) or openai",
     )
     parser.add_argument(
         "-c", "--sensitive-config", default=DEFAULT_SENSITIVE_CONFIG,
         dest="sensitive_config",
-        help=f"Path to sensitive_attr_config.json (default: configs/sensitive_attr_config.json)"
+        help="Path to sensitive_attr_config.json (default: configs/sensitive_attr_config.json)",
     )
     parser.add_argument(
-        "--source-col", default=DEFAULT_SOURCE_COL,
-        dest="source_col",
-        help=f"Source text column name (default: {DEFAULT_SOURCE_COL})"
-    )
-    parser.add_argument(
-        "--output-col", default=DEFAULT_OUTPUT_COL,
-        dest="output_col",
-        help=f"Output column name for masked text (default: {DEFAULT_OUTPUT_COL})"
-    )
-    parser.add_argument(
-        "--mode", default="test", choices=["test", "release"],
-        help="test: process a small sample for eyeballing; release: process full dataset (default: test)"
-    )
-    parser.add_argument(
-        "-n", "--test-rows", type=int, default=5,
-        dest="test_rows",
-        help="Number of rows to process in test mode (default: 5)"
-    )
-    parser.add_argument(
-        "--test-output", action="store_true",
-        dest="test_output",
-        help="In test mode, write results to test_output.csv instead of printing to terminal"
+        "-r", "--runtime-config", default=DEFAULT_RUNTIME_CONFIG,
+        dest="runtime_config",
+        help="Path to runtime_config.json (default: configs/runtime_config.json)",
     )
     parser.add_argument(
         "-o", "--output", default=None,
-        help="Release output path (default: <csv_stem>_cleansed.parquet)"
+        help="Output file path (overrides default derived from input filename)",
+    )
+    parser.add_argument(
+        "-n", "--preview", type=int, default=None, dest="preview",
+        metavar="N",
+        help="Process only the first N rows — useful for quickly eyeballing model output",
     )
     return parser.parse_args()
 
@@ -157,7 +175,9 @@ def main():
         print("Error: OPENAI_API_KEY not found in environment.", file=sys.stderr)
         sys.exit(1)
 
-    # Load sensitive config
+    # Load configs
+    runtime = load_runtime_config(args.runtime_config)
+
     config_path = args.sensitive_config
     if not os.path.isfile(config_path):
         print(f"Error: sensitive config not found: {config_path}", file=sys.stderr)
@@ -167,29 +187,36 @@ def main():
 
     system_prompt = build_system_prompt(sensitive_config)
 
+    source_col    = runtime["source_col"]
+    output_col    = runtime["output_col"]
+    output_format = runtime["output_format"]
+    timeout       = int(runtime["ollama_timeout_seconds"])
+
     # Load CSV
     if not os.path.isfile(args.csv_path):
         print(f"Error: CSV not found: {args.csv_path}", file=sys.stderr)
         sys.exit(1)
     df = pd.read_csv(args.csv_path)
 
-    if args.source_col not in df.columns:
+    if source_col not in df.columns:
         print(
-            f"Error: column '{args.source_col}' not found in CSV. "
+            f"Error: column '{source_col}' not found in CSV. "
             f"Available columns: {list(df.columns)}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    # Slice for test mode
-    if args.mode == "test":
-        df = df.head(args.test_rows).copy()
+    # Preview mode — limit rows
+    if args.preview is not None:
+        df = df.head(args.preview).copy()
 
     # Inference
     model_outputs = []
-    for text in tqdm(df[args.source_col], desc=args.model):
+    for text in tqdm(df[source_col], desc=args.model):
         try:
-            model_outputs.append(call_model(text, args.model, args.provider, system_prompt))
+            model_outputs.append(
+                call_model(text, args.model, args.provider, system_prompt, timeout)
+            )
         except Exception as e:
             model_outputs.append(None)
             print(f"Error: {e}", file=sys.stderr)
@@ -198,28 +225,31 @@ def main():
     n_total = len(model_outputs)
     print(f"\n{args.model} done — {n_successful}/{n_total} successful")
 
-    df[args.output_col] = model_outputs
+    df[output_col] = model_outputs
 
     # Output
-    if args.mode == "test" and not args.test_output:
-        # Print to terminal
+    stem = Path(args.csv_path).stem
+
+    if output_format == "stdout":
         print()
         for i, (_, row) in enumerate(df.iterrows(), start=1):
             print(f"Row {i}:")
-            print(f"  SOURCE : {row[args.source_col]}")
-            print(f"  MASKED : {row[args.output_col]}")
+            print(f"  SOURCE : {row[source_col]}")
+            print(f"  MASKED : {row[output_col]}")
             print()
-    elif args.mode == "test" and args.test_output:
-        out_path = os.path.join(os.path.dirname(args.csv_path), "test_output.csv")
-        df[[args.source_col, args.output_col]].to_csv(out_path, index=False)
-        print(f"Test output written to: {out_path}")
-    else:
-        # Release mode → parquet
-        if args.output:
-            out_path = args.output
-        else:
-            stem = Path(args.csv_path).stem
-            out_path = os.path.join(os.path.dirname(args.csv_path), f"{stem}_cleansed.parquet")
+
+    elif output_format == "csv":
+        out_path = args.output or os.path.join(
+            os.path.dirname(args.csv_path), f"{stem}_cleansed.csv"
+        )
+        os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+        df.to_csv(out_path, index=False)
+        print(f"Cleansed dataset written to: {out_path}")
+
+    else:  # parquet (default)
+        out_path = args.output or os.path.join(
+            os.path.dirname(args.csv_path), f"{stem}_cleansed.parquet"
+        )
         os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
         df.to_parquet(out_path, index=False)
         print(f"Cleansed dataset written to: {out_path}")

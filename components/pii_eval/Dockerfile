@@ -7,6 +7,7 @@ COPY src/ src/
 
 # Install dependencies (layer cache-friendly — copy requirements before rest of src)
 RUN pip install --no-cache-dir -r src/requirements.txt
+COPY configs/ configs/
 COPY entrypoint.sh entrypoint.sh
 
 # /data is the mount point for:

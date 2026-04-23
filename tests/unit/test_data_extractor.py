@@ -62,7 +62,7 @@ class TestCallOllama:
         mock_response.raise_for_status = MagicMock()
 
         with patch("extract.requests.post", return_value=mock_response):
-            result = call_ollama("model", "prompt text")
+            result = call_ollama("model", "prompt text", 120)
 
         assert result == payload
 
@@ -75,7 +75,7 @@ class TestCallOllama:
 
         with patch("extract.requests.post", return_value=mock_response):
             try:
-                call_ollama("model", "prompt")
+                call_ollama("model", "prompt", 120)
                 assert False, "Expected JSONDecodeError"
             except json.JSONDecodeError:
                 pass
@@ -86,7 +86,7 @@ class TestCallOllama:
 
         with patch("extract.requests.post", return_value=mock_response):
             try:
-                call_ollama("model", "prompt")
+                call_ollama("model", "prompt", 120)
                 assert False, "Expected HTTPError"
             except requests.HTTPError:
                 pass
@@ -99,7 +99,7 @@ class TestCallOllama:
         mock_response.raise_for_status = MagicMock()
 
         with patch("extract.requests.post", return_value=mock_response) as mock_post:
-            call_ollama("mistral-small:24b", "prompt")
+            call_ollama("mistral-small:24b", "prompt", 120)
 
         call_url = mock_post.call_args[0][0]
         assert "/api/chat" in call_url
@@ -112,7 +112,7 @@ class TestCallOllama:
         mock_response.raise_for_status = MagicMock()
 
         with patch("extract.requests.post", return_value=mock_response) as mock_post:
-            call_ollama("model", "prompt")
+            call_ollama("model", "prompt", 120)
 
         call_body = mock_post.call_args[1]["json"]
         assert call_body.get("format") == "json"

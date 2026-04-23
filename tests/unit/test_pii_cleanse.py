@@ -76,7 +76,7 @@ class TestCallModel:
         mock_response.raise_for_status = MagicMock()
 
         with patch("cleanse.requests.post", return_value=mock_response) as mock_post:
-            result = call_model("Hello John", "mistral-small:24b", "ollama", "system prompt")
+            result = call_model("Hello John", "mistral-small:24b", "ollama", "system prompt", 120)
 
         assert result == "Hello [PERSON]"
         call_url = mock_post.call_args[0][0]
@@ -90,7 +90,7 @@ class TestCallModel:
         mock_response.raise_for_status = MagicMock()
 
         with patch("cleanse.requests.post", return_value=mock_response):
-            result = call_model("input text", "model", "ollama", "prompt")
+            result = call_model("input text", "model", "ollama", "prompt", 120)
 
         assert result == "masked output"
 
@@ -100,7 +100,7 @@ class TestCallModel:
 
         with patch("cleanse.requests.post", return_value=mock_response):
             try:
-                call_model("text", "model", "ollama", "prompt")
+                call_model("text", "model", "ollama", "prompt", 120)
                 assert False, "Expected HTTPError"
             except requests.HTTPError:
                 pass
@@ -115,7 +115,7 @@ class TestCallModel:
         mock_client.chat.completions.create.return_value = mock_completion
 
         with patch("cleanse.OpenAI", return_value=mock_client):
-            result = call_model("input text", "gpt-4o", "openai", "system prompt")
+            result = call_model("input text", "gpt-4o", "openai", "system prompt", 120)
 
         assert result == "openai masked output"
 
@@ -129,7 +129,7 @@ class TestCallModel:
         mock_client.chat.completions.create.return_value = mock_completion
 
         with patch("cleanse.OpenAI", return_value=mock_client):
-            call_model("text", "gpt-4o", "openai", "my system prompt")
+            call_model("text", "gpt-4o", "openai", "my system prompt", 120)
 
         call_kwargs = mock_client.chat.completions.create.call_args
         messages = call_kwargs[1]["messages"]

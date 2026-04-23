@@ -1,0 +1,5 @@
+{
+  "ollama_timeout_seconds": 120,
+  "output_format": "csv",
+  "source_col": "masked_text"
+}

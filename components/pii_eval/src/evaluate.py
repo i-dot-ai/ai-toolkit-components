@@ -12,6 +12,7 @@ import sys
 from collections import Counter
 from datetime import date
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
 
 import pandas as pd
@@ -25,6 +26,26 @@ OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 DEFAULT_DATASET = "ai4privacy/open-pii-masking-500k-ai4privacy"
 DEFAULT_SOURCE_COL = "source_text"
 DEFAULT_GROUND_TRUTH_COL = "masked_text"
+DEFAULT_RUNTIME_CONFIG = os.environ.get(
+    "RUNTIME_CONFIG",
+    str(Path(__file__).resolve().parent.parent / "configs" / "runtime_config.json"),
+)
+
+_RUNTIME_DEFAULTS = {
+    "ollama_timeout_seconds": 120,
+}
+
+
+def load_runtime_config(path: str) -> dict:
+    """Load runtime_config.json, merging over built-in defaults."""
+    if os.path.isfile(path):
+        with open(path) as f:
+            return {**_RUNTIME_DEFAULTS, **json.load(f)}
+    print(
+        f"Warning: runtime config not found at {path}, using defaults.",
+        file=sys.stderr,
+    )
+    return dict(_RUNTIME_DEFAULTS)
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +62,7 @@ SYSTEM_PROMPT = (
 )
 
 
-def call_model(source_text: str, model: str, provider: str) -> str:
+def call_model(source_text: str, model: str, provider: str, timeout: int) -> str:
     if provider == "openai":
         client = OpenAI()  # reads OPENAI_API_KEY from environment
         response = client.chat.completions.create(
@@ -65,7 +86,7 @@ def call_model(source_text: str, model: str, provider: str) -> str:
                 "stream": False,
                 "options": {"temperature": 0},
             },
-            timeout=120,
+            timeout=timeout,
         )
         response.raise_for_status()
         return response.json()["message"]["content"]
@@ -433,12 +454,20 @@ def parse_args():
         "-p", "--provider", default="ollama", choices=["ollama", "openai"],
         help="Inference provider: ollama (default) or openai"
     )
+    parser.add_argument(
+        "-r", "--runtime-config", default=DEFAULT_RUNTIME_CONFIG,
+        dest="runtime_config",
+        help="Path to runtime_config.json (default: configs/runtime_config.json)",
+    )
 
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    runtime = load_runtime_config(args.runtime_config)
+    timeout = int(runtime["ollama_timeout_seconds"])
 
     MODEL = args.model
     SAMPLE_SIZE = args.sample_size
@@ -489,7 +518,7 @@ def main():
     model_outputs = []
     for text in tqdm(sample_df[source_col], desc=MODEL):
         try:
-            model_outputs.append(call_model(text, MODEL, args.provider))
+            model_outputs.append(call_model(text, MODEL, args.provider, timeout))
         except Exception as e:
             model_outputs.append(None)
             print(f"Error: {e}", file=sys.stderr)

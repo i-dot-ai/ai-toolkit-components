@@ -36,40 +36,32 @@ class TestPiiCleanseComponent:
         assert result.returncode != 0
 
     def test_wrong_source_column_exits_nonzero(self, pii_cleanse_image, docker_network, ollama_stub, tmp_path):
-        shutil.copy(FIXTURES / "incidents.csv", tmp_path / "incidents.csv")
+        # eval_dataset.csv has source_text/masked_text columns, not incident_text
+        # so it will fail the source_col check from runtime_config.json
+        shutil.copy(FIXTURES / "eval_dataset.csv", tmp_path / "eval_dataset.csv")
         result = run_component(
             pii_cleanse_image,
-            ["stub-model", "/data/incidents.csv", "--source-col", "no_such_column"],
+            ["stub-model", "/data/eval_dataset.csv"],
             docker_network,
             tmp_path,
         )
         assert result.returncode != 0
 
-    def test_test_mode_exits_zero(self, pii_cleanse_image, docker_network, ollama_stub, tmp_path):
+    def test_preview_exits_zero(self, pii_cleanse_image, docker_network, ollama_stub, tmp_path):
         shutil.copy(FIXTURES / "incidents.csv", tmp_path / "incidents.csv")
         result = run_component(
             pii_cleanse_image,
-            [
-                "stub-model", "/data/incidents.csv",
-                "--source-col", "incident_text",
-                "--mode", "test",
-                "-n", "1",
-            ],
+            ["stub-model", "/data/incidents.csv", "-n", "1"],
             docker_network,
             tmp_path,
         )
         assert result.returncode == 0
 
-    def test_release_mode_produces_parquet(self, pii_cleanse_image, docker_network, ollama_stub, tmp_path):
+    def test_full_run_produces_parquet(self, pii_cleanse_image, docker_network, ollama_stub, tmp_path):
         shutil.copy(FIXTURES / "incidents.csv", tmp_path / "incidents.csv")
         result = run_component(
             pii_cleanse_image,
-            [
-                "stub-model", "/data/incidents.csv",
-                "--source-col", "incident_text",
-                "--mode", "release",
-                "-o", "/data/output.parquet",
-            ],
+            ["stub-model", "/data/incidents.csv", "-o", "/data/output.parquet"],
             docker_network,
             tmp_path,
         )
@@ -81,12 +73,7 @@ class TestPiiCleanseComponent:
         shutil.copy(FIXTURES / "incidents.csv", tmp_path / "incidents.csv")
         run_component(
             pii_cleanse_image,
-            [
-                "stub-model", "/data/incidents.csv",
-                "--source-col", "incident_text",
-                "--mode", "release",
-                "-o", "/data/output.parquet",
-            ],
+            ["stub-model", "/data/incidents.csv", "-o", "/data/output.parquet"],
             docker_network,
             tmp_path,
         )
@@ -98,12 +85,7 @@ class TestPiiCleanseComponent:
         shutil.copy(FIXTURES / "incidents.csv", tmp_path / "incidents.csv")
         run_component(
             pii_cleanse_image,
-            [
-                "stub-model", "/data/incidents.csv",
-                "--source-col", "incident_text",
-                "--mode", "release",
-                "-o", "/data/output.parquet",
-            ],
+            ["stub-model", "/data/incidents.csv", "-o", "/data/output.parquet"],
             docker_network,
             tmp_path,
         )

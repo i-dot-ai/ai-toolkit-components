@@ -1,24 +1,6 @@
-# Personal Indentifiable Information (PII) Cleaner Tool
+# Personal Identifiable Information (PII) Cleaner Tool
 
-LLM-based PII masking tool. Applies configurable redaction rules to a CSV of free-text records, producing a cleansed parquet file for downstream field extraction.
-
-## Author
-
-**Lawrence Freeman**  
-AI Engineer at GBRx  
-AI Incubator Accelerator (AIIA)
-
-- GitHub: https://github.com/lawrencefreeman
-- LinkedIn: https://www.linkedin.com/in/thedatachef/
-
-## Prerequisites
-
-- [Ollama](https://ollama.com/) installed and running locally with a model pulled, e.g. `ollama pull mistral-small:24b`
-- [Docker](https://www.docker.com/)
-
-> **Platform note:** The default `OLLAMA_HOST` (`host.docker.internal:11434`) works on Mac and Windows Docker Desktop. On Linux, `host.docker.internal` is not available by default — override it with the host's Docker bridge IP: `-e OLLAMA_HOST=http://172.17.0.1:11434`. On Windows, the recommended setup is to run both Ollama and Docker inside WSL2.
-
----
+LLM-based PII masking tool. Applies configurable redaction rules to a CSV of free-text records, producing a cleansed output file for downstream field extraction.
 
 ## Role in the pipeline
 
@@ -60,24 +42,32 @@ Any value other than `"ignore"` is treated as `"redact"`, so the existing config
 }
 ```
 
-This produces the following system prompt at runtime:
+### Runtime config (`configs/runtime_config.json`)
 
+Operational settings that are typically set once per deployment and do not change between runs:
+
+```json
+{
+  "ollama_timeout_seconds": 120,
+  "output_format": "parquet",
+  "source_col": "incident_text",
+  "output_col": "masked_text"
+}
 ```
-You are a PII detection assistant. Apply the following rules to the text:
-- PERSON: replace with [PERSON]
-- EMAIL: replace with [EMAIL]
-- PHONE: replace with [PHONE]
-- LOCATION: leave unchanged
-- DATE: leave unchanged
-- TIME: leave unchanged
-- ID: replace with [ID]
-Return ONLY the modified text with no explanation or commentary.
-```
+
+| Key | Description | Valid values |
+|---|---|---|
+| `ollama_timeout_seconds` | HTTP client timeout for Ollama requests | Integer (seconds) |
+| `output_format` | How cleansed output is written | `parquet` (default), `csv`, `stdout` |
+| `source_col` | Column name containing the raw free text | String |
+| `output_col` | Column name for the masked text in the output | String |
+
+`stdout` is useful for quickly eyeballing model output without writing a file — combine with `-n` to limit rows.
 
 ## Usage
 
 ```
-python components/pii_cleanse/src/cleanse.py <model> <csv_path> [options]
+python cleanse.py <model> <csv_path> [options]
 ```
 
 ### Arguments
@@ -88,77 +78,65 @@ python components/pii_cleanse/src/cleanse.py <model> <csv_path> [options]
 | `csv_path` | yes | — | Path to input CSV file |
 | `-p, --provider` | no | `ollama` | Inference provider: `ollama` or `openai` |
 | `-c, --sensitive-config` | no | `configs/sensitive_attr_config.json` | Path to PII label/action config |
-| `--source-col` | no | `source_text` | Name of the source text column in the CSV |
-| `--output-col` | no | `masked_text` | Column name for the masked text in the output |
-| `--mode` | no | `test` | `test` — small sample eyeball; `release` — full dataset |
-| `-n, --test-rows` | no | `5` | Number of rows to process in test mode |
-| `--test-output` | no | off | In test mode, write to `test_output.csv` instead of printing |
-| `-o, --output` | no | `<csv_stem>_cleansed.parquet` | Output path for release mode parquet |
+| `-r, --runtime-config` | no | `configs/runtime_config.json` | Path to runtime config |
+| `-o, --output` | no | `<csv_stem>_cleansed.<ext>` | Override output file path |
+| `-n, --preview N` | no | — | Process only the first N rows |
 
 ### Examples
 
 ```bash
-# Test mode — print 5 rows to terminal (default)
-python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text
+# Full run — output format and columns driven by runtime_config.json
+python cleanse.py mistral-small:24b /data/incidents.csv
 
-# Test mode — write to test_output.csv, 10 rows
-python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -n 10 --test-output
+# Preview 5 rows to terminal (set output_format: stdout in runtime_config.json)
+python cleanse.py mistral-small:24b /data/incidents.csv -n 5
 
-# Release mode — full dataset, auto-named parquet output
-python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text --mode release
-
-# Release mode — explicit output path
-python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text --mode release -o "applications/extracta/sample_data/synthetic_incidents_100_cleansed.parquet"
+# Explicit output path
+python cleanse.py mistral-small:24b /data/incidents.csv -o /data/incidents_cleansed.parquet
 
 # OpenAI provider
-python components/pii_cleanse/src/cleanse.py gpt-4o "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -p openai --mode release
-
-# Custom sensitive config
-python components/pii_cleanse/src/cleanse.py mistral-small:24b "applications/extracta/sample_data/synthetic_incidents_100.csv" --source-col incident_text -c configs/my_config.json --mode release
+python cleanse.py gpt-4o /data/incidents.csv -p openai
 ```
 
 ## Output
 
-- **Test mode (default):** prints source and masked text for each row to the terminal
-- **Test mode (`--test-output`):** writes `test_output.csv` alongside the input CSV
-- **Release mode:** writes a parquet file with all original columns preserved plus the new masked text column (default name: `masked_text`)
+Output format is controlled by `output_format` in `runtime_config.json`:
 
-The parquet output is the expected input format for the downstream `data_extractor` component.
+- **`parquet`** (default) — writes a parquet file alongside the input; expected input format for `data_extractor`
+- **`csv`** — writes a CSV file alongside the input
+- **`stdout`** — prints source and masked text for each row to the terminal; no file written
 
 ## Docker
+
+Set your data directory once, then reuse across commands:
+
+```bash
+export DATA_DIR=/path/to/your/data
+```
 
 Build from the Extracta project root:
 
 ```bash
-docker build -f components/pii_cleanse/Dockerfile -t extracta-pii-cleanse components/pii_cleanse
+docker build -t extracta-pii-cleanse components/pii_cleanse
 ```
 
-The container mounts a `/data` volume for input and output. `OLLAMA_HOST` defaults to `http://host.docker.internal:11434` so the container can reach Ollama running on your Mac.
+Run:
 
 ```bash
-DATA="$(pwd)/applications/extracta/sample_data"
+# Full run (output format set in runtime_config.json)
+docker run --rm -v "$DATA_DIR:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv
 
-# Test mode — prints 5 rows to terminal
-docker run --rm \
-  -v "${DATA}:/data" \
-  extracta-pii-cleanse \
-  mistral-small:24b /data/synthetic_incidents_100.csv \
-  --source-col incident_text
+# Preview first 5 rows to terminal
+docker run --rm -v "$DATA_DIR:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv -n 5
 
-# Release mode — full dataset
-docker run --rm \
-  -v "${DATA}:/data" \
-  extracta-pii-cleanse \
-  mistral-small:24b /data/synthetic_incidents_100.csv \
-  --source-col incident_text \
-  --mode release \
-  -o /data/synthetic_incidents_100_cleansed.parquet
+# Explicit output path
+docker run --rm -v "$DATA_DIR:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv -o /data/incidents_cleansed.parquet
 ```
 
 Override the Ollama host if needed:
 
 ```bash
-docker run --rm -e OLLAMA_HOST=http://host.docker.internal:11434 ...
+docker run --rm -e OLLAMA_HOST=http://host.docker.internal:11434 -v "$DATA_DIR:/data" extracta-pii-cleanse mistral-small:24b /data/incidents.csv
 ```
 
 ## Dependencies
