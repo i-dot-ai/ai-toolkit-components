@@ -81,7 +81,8 @@ jobs:
           ((github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && (
             github.event.action == 'opened' ||
             github.event.action == 'ready_for_review' ||
-            github.event.action == 'synchronize'
+            github.event.action == 'synchronize' ||
+            github.event.action == 'labeled'
           ))
         uses: i-dot-ai/i-dot-ai-core-github-actions/.github/actions/claude-review@main
         with:
