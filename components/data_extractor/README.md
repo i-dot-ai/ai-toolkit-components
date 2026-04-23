@@ -1,6 +1,6 @@
 # Data Extractor
 
-LLM-based structured field extraction tool. Reads a PII-cleansed parquet file (upstream output of `pii_cleanse`), extracts defined fields from the masked text via Ollama, and writes results to the format specified in `runtime_config.json`.
+LLM-based structured field extraction tool. Reads a parquet or CSV file, extracts defined fields from a text column via Ollama, and writes results to the format specified in `runtime_config.json`.
 
 ## Role in the pipeline
 
@@ -10,7 +10,15 @@ LLM-based structured field extraction tool. Reads a PII-cleansed parquet file (u
                   [data_extractor]  →  *_extracted.csv
 ```
 
-The input **must** be the cleansed parquet produced by `pii_cleanse/cleanse.py`. The extractor reads from the `masked_text` column by default — never from the original unredacted text. Columns containing unredacted data (e.g. `incident_text`, `ner_labels`) are dropped from the output as defined in the config.
+The typical input is the cleansed parquet produced by `pii_cleanse`. The extractor reads from the `masked_text` column by default. Columns containing unredacted data (e.g. `incident_text`, `ner_labels`) are dropped from the output as defined in the config.
+
+### Skipping PII cleansing
+
+`data_extractor` also accepts a raw `.csv` file directly, allowing `pii_cleanse` to be bypassed entirely. This is useful when you are confident that your data contains no personal or sensitive information and want to go straight to field extraction.
+
+To use this mode, update `source_col` in your `runtime_config.json` to match the text column in your CSV (e.g. `incident_text` instead of the default `masked_text`), then pass the CSV as the input file.
+
+> **Warning:** This is the user's responsibility. If the input data contains personal or sensitive information, skipping `pii_cleanse` means that data will be sent to the LLM and may appear in the extracted output. Only bypass PII cleansing when you are confident the data does not contain sensitive information.
 
 ## Configuration
 
@@ -62,14 +70,14 @@ Operational settings that are typically set once per deployment:
 ## CLI Usage
 
 ```
-python extract.py <parquet_path> [options]
+python extract.py <input_file> [options]
 ```
 
 ### Arguments
 
 | Argument | Default | Description |
 |---|---|---|
-| `parquet_path` | required | Path to input parquet (output of `pii_cleanse`) |
+| `input_file` | required | Path to input file (`.parquet` or `.csv`) |
 | `-m`, `--model` | `mistral-small:24b` | Ollama model name |
 | `-c`, `--config` | `configs/fields_config.json` | Path to extraction config JSON |
 | `-r`, `--runtime-config` | `configs/runtime_config.json` | Path to runtime config |
@@ -79,8 +87,12 @@ python extract.py <parquet_path> [options]
 ### Examples
 
 ```bash
-# Full run — output format driven by runtime_config.json
+# Full run from cleansed parquet — output format driven by runtime_config.json
 python extract.py /data/incidents_cleansed.parquet
+
+# Full run directly from CSV (skipping pii_cleanse — use only when data contains no PII)
+# Set source_col in configs/runtime_config.json to match the text column in your CSV first
+python extract.py /data/incidents.csv
 
 # Preview 5 rows to terminal (set output_format: stdout in runtime_config.json)
 python extract.py /data/incidents_cleansed.parquet -n 5
@@ -119,8 +131,12 @@ docker build -t extracta-data-extractor components/data_extractor
 Run:
 
 ```bash
-# Full run (output format set in runtime_config.json)
+# Full run from cleansed parquet (output format set in runtime_config.json)
 docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents_cleansed.parquet
+
+# Full run directly from CSV (skipping pii_cleanse — use only when data contains no PII)
+# Set source_col in configs/runtime_config.json to match the text column in your CSV, then rebuild
+docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents.csv
 
 # Preview first 5 rows to terminal
 docker run --rm -v "$DATA_DIR:/data" extracta-data-extractor /data/incidents_cleansed.parquet -n 5

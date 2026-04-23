@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Data Extraction CLI
-Reads a PII-cleansed parquet (upstream output of pii_cleanse/cleanse.py),
+Reads a parquet or CSV file,
 extracts structured fields from the masked text column via Ollama, and
 writes results to the format specified in runtime_config.json.
 Field definitions are driven by a JSON config.
@@ -111,8 +111,8 @@ def parse_args():
         description="Extract structured fields from a PII-cleansed parquet via Ollama."
     )
     parser.add_argument(
-        "parquet_path",
-        help="Path to input parquet file (output of pii_cleanse/cleanse.py)",
+        "input_file",
+        help="Path to input file (.parquet or .csv)",
     )
     parser.add_argument(
         "-m", "--model", default=DEFAULT_MODEL, dest="model",
@@ -166,11 +166,19 @@ def main():
     output_format = runtime["output_format"]
     timeout       = int(runtime["ollama_timeout_seconds"])
 
-    # Load parquet
-    if not os.path.isfile(args.parquet_path):
-        print(f"Error: parquet not found: {args.parquet_path}", file=sys.stderr)
+    # Load input file
+    input_path = args.input_file
+    if not os.path.isfile(input_path):
+        print(f"Error: input file not found: {input_path}", file=sys.stderr)
         sys.exit(1)
-    df = pd.read_parquet(args.parquet_path)
+    suffix = Path(input_path).suffix.lower()
+    if suffix == ".csv":
+        df = pd.read_csv(input_path)
+    elif suffix in (".parquet", ".pq"):
+        df = pd.read_parquet(input_path)
+    else:
+        print(f"Error: unsupported file type '{suffix}'. Supported: .csv, .parquet", file=sys.stderr)
+        sys.exit(1)
 
     if source_col not in df.columns:
         print(
@@ -213,7 +221,7 @@ def main():
 
     print(f"\nDone — {len(results) - n_errors}/{len(results)} successful")
 
-    stem = Path(args.parquet_path).stem
+    stem = Path(input_path).stem
 
     # Output
     if output_format == "stdout":
@@ -225,7 +233,7 @@ def main():
 
     elif output_format == "json":
         out_path = args.output or os.path.join(
-            os.path.dirname(args.parquet_path), f"{stem}_extracted.json"
+            os.path.dirname(input_path), f"{stem}_extracted.json"
         )
         os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
         with open(out_path, "w") as f:
@@ -234,7 +242,7 @@ def main():
 
     else:  # csv (default)
         out_path = args.output or os.path.join(
-            os.path.dirname(args.parquet_path), f"{stem}_extracted.csv"
+            os.path.dirname(input_path), f"{stem}_extracted.csv"
         )
         os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
         pd.DataFrame(results).to_csv(out_path, index=False)
