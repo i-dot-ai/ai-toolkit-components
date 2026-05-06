@@ -1,0 +1,3 @@
+source_text,masked_text
+"John Smith reported a signal failure at Manchester Piccadilly.","[PERSON] reported a signal failure at [LOCATION]."
+"Jane Doe called about a track obstruction near Leeds station.","[PERSON] called about a track obstruction near [LOCATION]."

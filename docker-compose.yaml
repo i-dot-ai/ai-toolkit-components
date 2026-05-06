@@ -54,3 +54,26 @@ services:
     environment:
       - VECTOR_DB_HOST=vector_db
       - VECTOR_DB_PORT=${VECTOR_DB_HTTP_PORT:-6333}
+
+  pii_cleanse:
+    build:
+      context: components/pii_cleanse
+    image: pii_cleanse:latest
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - SENSITIVE_CONFIG=/app/configs/sensitive_attr_config.json
+
+  pii_eval:
+    build:
+      context: components/pii_eval
+    image: pii_eval:latest
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+
+  data_extractor:
+    build:
+      context: components/data_extractor
+    image: data_extractor:latest
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - EXTRACT_CONFIG=/app/configs/extracta_config.json

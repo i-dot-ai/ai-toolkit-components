@@ -1,0 +1,3 @@
+incident_text,ner_labels
+"John Smith reported a signal failure at Manchester Piccadilly at 07:00 on 12/03/2025.","B-PERSON I-PERSON O O O O O O B-LOCATION I-LOCATION O B-TIME O B-DATE O B-DATE O"
+"Jane Doe called 07700900123 about a track obstruction near Leeds station.","B-PERSON I-PERSON O B-PHONE O O O O O O B-LOCATION O"

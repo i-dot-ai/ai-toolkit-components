@@ -1,0 +1,21 @@
+{
+  "drop_columns": ["incident_text", "ner_labels"],
+  "fields_to_extract": [
+    {
+      "name": "issue",
+      "description": "The primary issue described, could be described as the incident. Would be useful to identify root cause if possible."
+    },
+    {
+      "name": "impact",
+      "description": "What was the impact of the incident to the people involved? i.e. physical harm (injury/fatality), emotional impact, delays, evacuation, financial loss, or other disruption experienced by passengers or staff."
+    },
+    {
+      "name": "resolution_action",
+      "description": "How was the issue resolved if known (e.g., replaced tuning unit, erected ESR, lifted caution). If no obvoius resolution then jus return: Unresolved"
+    },
+    {
+      "name": "severity_indicator",
+      "description": "Based on keywords in the text, classify as: 1 - Critical, 2 - High, 3 - Moderate, 4 - Low, 5 - Information"
+    }
+  ]
+}
