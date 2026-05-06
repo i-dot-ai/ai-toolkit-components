@@ -1,7 +1,7 @@
 pandas==3.0.0
 pyarrow==23.0.1
-requests==2.32.5
-python-dotenv==1.2.1
+requests==2.33.0
+python-dotenv==1.2.2
 openai==2.16.0
 tqdm==4.67.3
 seqeval==1.2.2
