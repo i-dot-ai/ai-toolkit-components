@@ -8,7 +8,7 @@ dependencies = [
     "docker>=7.1.0",
     "pytest>=9.0.3",
     "pyyaml>=6.0.3",
-    "requests>=2.32.5",
+    "requests>=2.33.0",
     "beautifulsoup4>=4.12.0",
     "lxml>=6.1.0",
     "numpy>=1.26.0",
@@ -18,7 +18,7 @@ dependencies = [
     "seqeval>=1.2.2",
     "openai>=1.0",
     "tqdm>=4.0",
-    "python-dotenv>=1.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [dependency-groups]
